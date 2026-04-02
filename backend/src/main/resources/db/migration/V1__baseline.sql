@@ -1,0 +1,3 @@
+-- Baseline migration marker.
+-- For existing databases, Flyway will baseline at version 1.
+-- For new databases, add concrete schema migrations in the next versions (V2, V3, ...).
