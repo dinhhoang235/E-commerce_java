@@ -1,0 +1,25 @@
+# Ignore Gradle build output
+/build
+/.gradle
+
+# Ignore IDE files
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+
+# Ignore test reports
+/test-results
+
+# Ignore local env files
+.env
+
+# Ignore wrapper logs
+gradle/wrapper/gradle-wrapper.jar
