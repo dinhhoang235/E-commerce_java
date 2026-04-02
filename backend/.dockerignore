@@ -21,5 +21,3 @@ Thumbs.db
 # Ignore local env files
 .env
 
-# Ignore wrapper logs
-gradle/wrapper/gradle-wrapper.jar

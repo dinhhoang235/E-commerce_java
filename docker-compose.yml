@@ -12,7 +12,7 @@ services:
       - backend
       - frontend
     networks:
-      - ecommerce-network
+      - ecommerce_java-network
 
   frontend:
     build:
@@ -32,7 +32,7 @@ services:
       - WATCHPACK_POLLING=true
       - NODE_ENV=development
     networks:
-      - ecommerce-network
+      - ecommerce_java-network
 
   backend:
     build:
@@ -42,12 +42,14 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     env_file:
       - ./.env
     networks:
-      - ecommerce-network
+      - ecommerce_java-network
 
   db:
     image: mysql:8.0
@@ -64,8 +66,14 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks:
-      - ecommerce-network
+      - ecommerce_java-network
 
   redis:
     image: redis:alpine
@@ -75,7 +83,7 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes
     networks:
-      - ecommerce-network
+      - ecommerce_java-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -83,7 +91,7 @@ services:
       retries: 5
 
 networks:
-  ecommerce-network:
+  ecommerce_java-network:
     driver: bridge
 
 volumes:
