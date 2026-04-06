@@ -69,6 +69,8 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setFirstName(safeTrim(request.first_name()));
         user.setLastName(safeTrim(request.last_name()));
+        user.setIsStaff(false);
+        user.setIsSuperuser(false);
         user = userRepository.save(user);
 
         Account account = new Account();

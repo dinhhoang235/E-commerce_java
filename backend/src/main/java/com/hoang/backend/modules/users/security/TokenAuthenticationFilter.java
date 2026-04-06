@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -40,11 +41,17 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void setAuthentication(HttpServletRequest request, AppUser user) {
-        // Tạo authentication dạng đơn giản dựa trên username và ROLE_USER.
+        // Gán ROLE_USER mặc định và bổ sung ROLE_ADMIN nếu tài khoản là staff.
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        if (Boolean.TRUE.equals(user.getIsStaff())) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        }
+
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 user.getUsername(),
                 null,
-                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+                authorities
         );
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);

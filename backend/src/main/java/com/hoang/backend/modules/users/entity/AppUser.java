@@ -56,6 +56,12 @@ public class AppUser {
     @Column(name = "token_version", nullable = false)
     private int tokenVersion = 0;
 
+    @Column(name = "is_staff", nullable = false)
+    private Boolean isStaff = false;
+
+    @Column(name = "is_superuser", nullable = false)
+    private Boolean isSuperuser = false;
+
     @OneToOne(mappedBy = "user")
     private Account account;
 
