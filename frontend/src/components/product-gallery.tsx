@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight, ZoomIn } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
 interface ProductGalleryProps {
   product: any
@@ -16,7 +17,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
 
   // Generate multiple images based on the product
   const images = [
-    product.image,
+    formatImageUrl(product.image),
     `/placeholder.svg?height=600&width=600&text=${encodeURIComponent(product.name + " - Side")}`,
     `/placeholder.svg?height=600&width=600&text=${encodeURIComponent(product.name + " - Back")}`,
     `/placeholder.svg?height=600&width=600&text=${encodeURIComponent(product.name + " - Detail")}`,
@@ -46,7 +47,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
                 src={images[selectedImage] || "/placeholder.svg"}
                 alt={product.name}
                 fill
-                unoptimized={images[selectedImage]?.startsWith('http')}
+                unoptimized={isExternalImage(images[selectedImage])}
                 className="object-contain"
               />
             </div>
@@ -57,7 +58,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
           src={images[selectedImage] || "/placeholder.svg"} 
           alt={product.name} 
           fill 
-          unoptimized={images[selectedImage]?.startsWith('http')}
+          unoptimized={isExternalImage(images[selectedImage])}
           className="object-contain" 
         />
 
@@ -97,7 +98,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
                 src={image || "/placeholder.svg"}
                 alt={`${product.name} - Image ${index + 1}`}
                 fill
-                unoptimized={image?.startsWith('http')}
+                unoptimized={isExternalImage(image)}
                 className="object-cover"
               />
             </div>

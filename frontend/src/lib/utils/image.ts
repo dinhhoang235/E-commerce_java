@@ -20,21 +20,25 @@ export function formatImageUrl(imageUrl: string | null | undefined, bustCache: b
 
   let formattedUrl = imageUrl
 
-  // If it's already a full URL (starts with http), return as is
-  if (imageUrl.startsWith('http')) {
+  // Keep absolute URLs and blob/data previews as-is.
+  if (imageUrl.startsWith('http') || imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
     formattedUrl = imageUrl
   }
-  // If it starts with /media, prepend the backend URL
+  // Normalize backend media paths so the browser can load them through nginx.
+  else if (imageUrl.startsWith('/media/')) {
+    formattedUrl = imageUrl
+  }
+  // If it starts with /media, keep it as a backend media path.
   else if (imageUrl.startsWith('/media')) {
-    formattedUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${imageUrl}`
+    formattedUrl = imageUrl
   }
-  // If it's a relative path without leading slash, assume it's from the backend media folder
+  // If it's a relative path without leading slash, assume it's from the backend media folder.
   else if (imageUrl.startsWith('media/')) {
-    formattedUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/${imageUrl}`
+    formattedUrl = `/${imageUrl}`
   }
-  // If it doesn't start with / or http, assume it's a relative backend path
+  // If it doesn't start with / or http, assume it's a relative backend path.
   else if (!imageUrl.startsWith('/') && !imageUrl.startsWith('http')) {
-    formattedUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/media/${imageUrl}`
+    formattedUrl = `/media/${imageUrl}`
   }
   // For other cases, return the fallback
   else {
@@ -58,15 +62,13 @@ export function formatImageUrl(imageUrl: string | null | undefined, bustCache: b
 export function isExternalImage(imageUrl: string | null | undefined): boolean {
   if (!imageUrl) return false
   
-  // Check if it's a localhost backend URL
-  if (imageUrl.includes('localhost:8000') || 
-      imageUrl.startsWith('http://localhost') || 
-      imageUrl.startsWith('https://localhost') ||
-      imageUrl.startsWith('/media') || 
-      imageUrl.startsWith('media/')) {
+  // Treat backend media URLs and absolute URLs as external to Next image optimization.
+  if (imageUrl.startsWith('/media') || 
+      imageUrl.startsWith('media/') ||
+      imageUrl.startsWith('http://') || 
+      imageUrl.startsWith('https://')) {
     return true
   }
   
-  // Check if it's any external HTTP URL
-  return imageUrl.startsWith('http')
+  return false
 }

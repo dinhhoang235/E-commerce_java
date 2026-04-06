@@ -15,6 +15,7 @@ import { WishlistButton } from "@/components/wishlist-button"
 import { getAllProducts, getProductsByCategory } from "@/lib/services/products"
 import { getAllCategories } from "@/lib/services/categories"
 import { StarRating } from "@/components/star-rating"
+import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
 // Define Category interface
 interface Category {
@@ -437,10 +438,10 @@ export default function ProductsPage() {
                   </div>
                   <div className="relative aspect-square w-full">
                     <Image
-                      src={product.image || "/placeholder.svg"}
+                      src={formatImageUrl(product.image)}
                       alt={product.name}
                       fill
-                      unoptimized={product.image?.startsWith('http')}
+                      unoptimized={isExternalImage(product.image)}
                       className="object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>

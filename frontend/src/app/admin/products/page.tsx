@@ -30,6 +30,7 @@ import { analyticsService } from "@/lib/services/analytics"
 import { SafeImage } from "@/components/safe-image"
 import { ImageUpload } from "@/components/image-upload"
 import { useImageCache } from "@/hooks/use-image-cache"
+import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
 // Types
 interface ProductStats {
@@ -73,18 +74,6 @@ interface Product {
   available_colors: Color[]
   available_storages: string[]
   created_at: string
-}
-
-// Helper functions
-const formatImageUrl = (url: string | null | undefined): string => {
-  if (!url) return "/placeholder.jpg"
-  if (url.startsWith("http")) return url
-  return `http://localhost:8000${url}`
-}
-
-const isExternalImage = (url: string | null | undefined): boolean => {
-  if (!url) return false
-  return url.startsWith("http")
 }
 
 export default function AdminProductsPage() {

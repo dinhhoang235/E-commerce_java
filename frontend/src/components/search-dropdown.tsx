@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, ArrowRight } from "lucide-react"
 import { searchProducts } from "@/lib/services/products"
+import { formatImageUrl } from "@/lib/utils/image"
 
 interface SearchDropdownProps {
   query: string
@@ -159,7 +160,7 @@ export function SearchDropdown({ query, isOpen, onClose, onSelect }: SearchDropd
               >
                 <div className="relative w-16 h-16 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
                   <img
-                    src={product.image || "/placeholder.svg"}
+                    src={formatImageUrl(product.image)}
                     alt={product.name}
                     width={64}
                     height={64}

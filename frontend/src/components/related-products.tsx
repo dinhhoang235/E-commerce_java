@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Star, ShoppingCart } from "lucide-react"
 import { getAllProducts } from "@/lib/services/products"
 import { StarRating } from "@/components/star-rating"
+import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
 // Define Category interface
 interface Category {
@@ -117,10 +118,10 @@ export function RelatedProducts({ currentProductId, category }: RelatedProductsP
                     <Badge className="absolute top-2 left-2 z-10 bg-red-500 hover:bg-red-600">{product.badge}</Badge>
                   )}
                   <Image
-                    src={product.image || "/placeholder.svg"}
+                    src={formatImageUrl(product.image)}
                     alt={product.name}
                     fill
-                    unoptimized={product.image?.startsWith('http')}
+                    unoptimized={isExternalImage(product.image)}
                     className="object-contain group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>

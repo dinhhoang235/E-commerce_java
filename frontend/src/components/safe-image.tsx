@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useState, useEffect } from "react"
+import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
 interface SafeImageProps {
   src: string
@@ -14,19 +15,20 @@ interface SafeImageProps {
 
 export function SafeImage({ src, alt, width, height, className = "", unoptimized = false }: SafeImageProps) {
   const [imageError, setImageError] = useState(false)
-  const [imageSrc, setImageSrc] = useState(src)
+  const [imageSrc, setImageSrc] = useState(formatImageUrl(src))
 
   // Reset error state when src changes
   useEffect(() => {
     setImageError(false)
-    setImageSrc(src)
+    setImageSrc(formatImageUrl(src))
   }, [src])
 
-  // For external URLs (localhost backend) or if there was an error, use regular img tag
-  const shouldUseImgTag = imageError || 
-                         src.startsWith('http://localhost') || 
-                         src.startsWith('https://localhost') ||
-                         src.includes('localhost:8000')
+  // Backend media paths, blob URLs, and data URLs should bypass Next optimization.
+  const shouldUseImgTag = imageError ||
+                         unoptimized ||
+                         isExternalImage(imageSrc) ||
+                         imageSrc.startsWith('blob:') ||
+                         imageSrc.startsWith('data:')
 
   if (shouldUseImgTag) {
     return (

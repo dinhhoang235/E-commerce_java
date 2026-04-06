@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Search, Edit, Trash2, Eye, FolderOpen, Package } from "lucide-react"
 import { ImageUpload } from "@/components/image-upload"
+import { SafeImage } from "@/components/safe-image"
 import { useToast } from "@/hooks/use-toast"
 import { getAllCategories, createCategory, updateCategory, deleteCategory } from "@/lib/services/categories"
 
@@ -526,9 +527,11 @@ export default function AdminCategoriesPage() {
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          <img
+                          <SafeImage
                             src={category.image || "/placeholder.svg"}
                             alt={category.name}
+                            width={48}
+                            height={48}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -620,9 +623,11 @@ export default function AdminCategoriesPage() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="aspect-square bg-slate-100 rounded-lg overflow-hidden">
-                    <img
+                    <SafeImage
                       src={viewingCategory.image || "/placeholder.svg"}
                       alt={viewingCategory.name}
+                      width={320}
+                      height={320}
                       className="w-full h-full object-cover"
                     />
                   </div>

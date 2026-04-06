@@ -9,6 +9,7 @@ import { ShoppingCart, Star, Truck, Shield, Headphones, Loader2 } from "lucide-r
 import { getAllProducts, getTopSellers, getNewArrivals, getPersonalizedRecommendations } from "@/lib/services/products"
 import { getAllCategories } from "@/lib/services/categories"
 import { StarRating } from "@/components/star-rating"
+import { formatImageUrl } from "@/lib/utils/image"
 
 // Define interfaces for API data
 interface Category {
@@ -111,12 +112,6 @@ export default function HomePage() {
 
     fetchData()
   }, [])
-
-  const formatImageUrl = (imageUrl?: string) => {
-    if (!imageUrl) return "/placeholder.svg"
-    if (imageUrl.startsWith("http")) return imageUrl
-    return `http://localhost:8000${imageUrl}`
-  }
 
   const formatPrice = (product: Product) => {
     if (product.min_price === product.max_price) {
