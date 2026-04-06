@@ -45,6 +45,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/admin/login", "/api/admin/login/").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/check-username", "/api/check-username/").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/check-email", "/api/check-email/").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                            "/api/categories", "/api/categories/", "/api/categories/**",
+                            "/api/products", "/api/products/", "/api/products/**",
+                            "/api/product-colors", "/api/product-colors/", "/api/product-colors/**",
+                            "/api/product-variants", "/api/product-variants/", "/api/product-variants/**"
+                        ).permitAll()
             // Các endpoint còn lại yêu cầu đã xác thực
                         .anyRequest().authenticated()
                 )
