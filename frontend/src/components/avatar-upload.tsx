@@ -161,7 +161,7 @@ export function AvatarUpload({ value, onChange, userName }: AvatarUploadProps) {
   return (
     <div className="flex items-center space-x-6">
       <Avatar className="h-24 w-24">
-        <AvatarImage src={value || "/placeholder.svg"} alt={userName} />
+        <AvatarImage src={value || ""} alt={userName} />
         <AvatarFallback className="text-lg bg-blue-100 text-blue-600">{getInitials(userName)}</AvatarFallback>
       </Avatar>
 

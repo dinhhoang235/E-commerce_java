@@ -50,7 +50,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserService {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    private static final String DEFAULT_AVATAR = "/images/default.jpg";
 
     private final AppUserRepository userRepository;
     private final AccountRepository accountRepository;
@@ -342,7 +341,7 @@ public class UserService {
     private AccountResponse toAccountResponse(AppUser user, Address address) {
         Account account = accountRepository.findByUserId(user.getId()).orElse(null);
         AddressResponse addressResponse = address == null ? null : toAddressResponse(address, user.getEmail());
-        String avatar = account == null ? DEFAULT_AVATAR : account.getAvatarUrl();
+        String avatar = account == null ? null : account.getAvatarUrl();
         String phone = account == null ? "" : safeString(account.getPhone());
 
         return new AccountResponse(

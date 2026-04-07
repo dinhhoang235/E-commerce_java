@@ -189,7 +189,7 @@ export function Header() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="hidden sm:flex items-center space-x-2 px-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={`${user.first_name} ${user.last_name}`} />
+                      <AvatarImage src={user.avatar || ""} alt={`${user.first_name} ${user.last_name}`} />
                       <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
                         {getInitials(user.first_name, user.last_name)}
                       </AvatarFallback>

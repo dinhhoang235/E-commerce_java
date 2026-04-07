@@ -45,9 +45,9 @@ public class Account {
     private String phone = "";
 
     public String getAvatarUrl() {
-        // Trả về ảnh mặc định khi người dùng chưa upload avatar.
+        // Trả về null khi người dùng chưa upload avatar.
         if (avatar == null || avatar.isBlank()) {
-            return "/images/default.jpg";
+            return null;
         }
         return avatar;
     }
