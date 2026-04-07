@@ -19,6 +19,7 @@ import com.hoang.backend.modules.orders.entity.Order;
 import com.hoang.backend.modules.orders.entity.OrderItem;
 import com.hoang.backend.modules.orders.repository.OrderItemRepository;
 import com.hoang.backend.modules.orders.repository.OrderRepository;
+import com.hoang.backend.modules.payments.repository.PaymentTransactionRepository;
 import com.hoang.backend.modules.products.entity.Product;
 import com.hoang.backend.modules.products.entity.ProductVariant;
 import com.hoang.backend.modules.products.repository.ProductVariantRepository;
@@ -66,6 +67,7 @@ public class OrderService {
     private final AccountRepository accountRepository;
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
 
     @Transactional(readOnly = true)
     public List<OrderResponse> listMyOrders(String authenticatedUsername) {
@@ -593,23 +595,16 @@ public class OrderService {
     }
 
     private String paymentStatus(Order order) {
-        if ("refunded".equals(order.getStatus())) {
+        if (paymentTransactionRepository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), "refunded").isPresent()) {
             return "refunded";
         }
-        if (Boolean.TRUE.equals(order.getIsPaid())) {
-            return "success";
-        }
-        if ("cancelled".equals(order.getStatus())) {
-            return "canceled";
-        }
-        return "no_payment";
+        return paymentTransactionRepository.findFirstByOrderIdOrderByCreatedAtDesc(order.getId())
+                .map(tx -> tx.getStatus() == null || tx.getStatus().isBlank() ? "no_payment" : tx.getStatus())
+                .orElse("no_payment");
     }
 
     private boolean hasPendingPayment(Order order) {
-        return "pending".equals(order.getStatus())
-                && !Boolean.TRUE.equals(order.getIsPaid())
-                && order.getCheckoutUrl() != null
-                && !order.getCheckoutUrl().isBlank();
+        return paymentTransactionRepository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), "pending").isPresent();
     }
 
     private boolean canContinuePayment(Order order) {

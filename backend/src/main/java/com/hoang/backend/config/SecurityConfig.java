@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/token", "/api/token/").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/token/refresh", "/api/token/refresh/").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/admin/login", "/api/admin/login/").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments/webhook", "/api/payments/webhook/").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/check-username", "/api/check-username/").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/check-email", "/api/check-email/").permitAll()
                         .requestMatchers(HttpMethod.GET,

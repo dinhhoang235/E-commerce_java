@@ -8,6 +8,7 @@ import com.hoang.backend.modules.adminpanel.dto.AdminLoginRequest;
 import com.hoang.backend.modules.adminpanel.dto.AdminLoginResponse;
 import com.hoang.backend.modules.adminpanel.entity.StoreSettings;
 import com.hoang.backend.modules.adminpanel.repository.StoreSettingsRepository;
+import com.hoang.backend.modules.payments.service.PaymentService;
 import com.hoang.backend.modules.users.entity.AppUser;
 import com.hoang.backend.modules.users.repository.AppUserRepository;
 import java.math.BigDecimal;
@@ -42,6 +43,7 @@ public class AdminPanelService {
     private final AppUserRepository userRepository;
     private final StoreSettingsRepository storeSettingsRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PaymentService paymentService;
 
     @Transactional(readOnly = true)
     public AdminLoginResponse login(AdminLoginRequest request) {
@@ -165,20 +167,13 @@ public class AdminPanelService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getPaymentTransactions(String authenticatedUsername) {
         requireAdmin(authenticatedUsername);
-        return List.of();
+        return paymentService.listAdminTransactions();
     }
 
     @Transactional(readOnly = true)
     public Map<String, Object> getPaymentStats(String authenticatedUsername) {
         requireAdmin(authenticatedUsername);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("total_transactions", 0);
-        result.put("total_amount", 0.0);
-        result.put("successful_transactions", 0);
-        result.put("pending_transactions", 0);
-        result.put("failed_transactions", 0);
-        result.put("refunded_transactions", 0);
-        return result;
+        return paymentService.adminPaymentStats();
     }
 
     @Transactional(readOnly = true)
