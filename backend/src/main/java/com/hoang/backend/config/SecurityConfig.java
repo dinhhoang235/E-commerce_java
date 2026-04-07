@@ -50,7 +50,8 @@ public class SecurityConfig {
                             "/api/categories", "/api/categories/", "/api/categories/**",
                             "/api/products", "/api/products/", "/api/products/**",
                             "/api/product-colors", "/api/product-colors/", "/api/product-colors/**",
-                            "/api/product-variants", "/api/product-variants/", "/api/product-variants/**"
+                            "/api/product-variants", "/api/product-variants/", "/api/product-variants/**",
+                            "/api/reviews", "/api/reviews/", "/api/reviews/**"
                         ).permitAll()
             // Các endpoint còn lại yêu cầu đã xác thực
                         .anyRequest().authenticated()
