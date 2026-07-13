@@ -4,7 +4,8 @@ import com.hoang.backend.modules.orders.dto.AdminOrderListResponse;
 import com.hoang.backend.modules.orders.dto.OrderResponse;
 import com.hoang.backend.modules.orders.dto.OrderStatsResponse;
 import com.hoang.backend.modules.orders.dto.OrderStatusUpdateRequest;
-import com.hoang.backend.modules.orders.service.OrderService;
+import com.hoang.backend.modules.orders.service.OrderCommandService;
+import com.hoang.backend.modules.orders.service.OrderQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/orders/admin")
 public class AdminOrderController {
 
-    private final OrderService orderService;
+    private final OrderCommandService orderCommandService;
+    private final OrderQueryService orderQueryService;
 
     @GetMapping(value = {"", "/"})
     public ResponseEntity<AdminOrderListResponse> list(
@@ -31,12 +33,12 @@ public class AdminOrderController {
             @RequestParam(name = "customer", required = false) String customer,
             @RequestParam(name = "limit", required = false) Integer limit
     ) {
-        return ResponseEntity.ok(orderService.listAdminOrders(authentication.getName(), status, customer, limit));
+        return ResponseEntity.ok(orderQueryService.listAdminOrders(authentication.getName(), status, customer, limit));
     }
 
     @GetMapping(value = {"/{orderId}", "/{orderId}/"})
     public ResponseEntity<OrderResponse> retrieve(Authentication authentication, @PathVariable String orderId) {
-        return ResponseEntity.ok(orderService.adminGetOrder(authentication.getName(), orderId));
+        return ResponseEntity.ok(orderQueryService.adminGetOrder(authentication.getName(), orderId));
     }
 
     @PatchMapping(value = {"/{orderId}", "/{orderId}/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -45,11 +47,11 @@ public class AdminOrderController {
             @PathVariable String orderId,
             @RequestBody OrderStatusUpdateRequest request
     ) {
-        return ResponseEntity.ok(orderService.adminUpdateOrderStatus(authentication.getName(), orderId, request.status()));
+        return ResponseEntity.ok(orderCommandService.adminUpdateOrderStatus(authentication.getName(), orderId, request.status()));
     }
 
     @GetMapping(value = {"/stats", "/stats/"})
     public ResponseEntity<OrderStatsResponse> stats(Authentication authentication) {
-        return ResponseEntity.ok(orderService.adminStats(authentication.getName()));
+        return ResponseEntity.ok(orderQueryService.adminStats(authentication.getName()));
     }
 }

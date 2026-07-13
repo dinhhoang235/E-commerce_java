@@ -2,7 +2,7 @@ package com.hoang.backend.modules.products.controller;
 
 import com.hoang.backend.modules.products.dto.ProductVariantResponse;
 import com.hoang.backend.modules.products.dto.StockUpdateRequest;
-import com.hoang.backend.modules.products.service.ProductService;
+import com.hoang.backend.modules.products.service.ProductVariantService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,21 +25,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/product-variants")
 public class ProductVariantController {
 
-    private final ProductService productService;
+    private final ProductVariantService productVariantService;
 
     @GetMapping(value = {"", "/"})
     public ResponseEntity<List<ProductVariantResponse>> list(@RequestParam(name = "product_id", required = false) Long productId) {
-        return ResponseEntity.ok(productService.listVariants(Optional.ofNullable(productId)));
+        return ResponseEntity.ok(productVariantService.listVariants(Optional.ofNullable(productId)));
     }
 
     @GetMapping(value = {"/{id}", "/{id}/"})
     public ResponseEntity<ProductVariantResponse> retrieve(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getVariant(id));
+        return ResponseEntity.ok(productVariantService.getVariant(id));
     }
 
     @PostMapping(value = {"", "/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProductVariantResponse> create(Authentication authentication, @RequestBody Map<String, Object> payload) {
-        return ResponseEntity.ok(productService.createVariant(authentication.getName(), payload));
+        return ResponseEntity.ok(productVariantService.createVariant(authentication.getName(), payload));
     }
 
     @PutMapping(value = {"/{id}", "/{id}/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -48,12 +48,12 @@ public class ProductVariantController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> payload
     ) {
-        return ResponseEntity.ok(productService.updateVariant(authentication.getName(), id, payload));
+        return ResponseEntity.ok(productVariantService.updateVariant(authentication.getName(), id, payload));
     }
 
     @DeleteMapping(value = {"/{id}", "/{id}/"})
     public ResponseEntity<Map<String, String>> delete(Authentication authentication, @PathVariable Long id) {
-        productService.deleteVariant(authentication.getName(), id);
+        productVariantService.deleteVariant(authentication.getName(), id);
         return ResponseEntity.ok(Map.of("status", "deleted"));
     }
 
@@ -63,7 +63,7 @@ public class ProductVariantController {
             @PathVariable Long id,
             @RequestBody StockUpdateRequest request
     ) {
-        return ResponseEntity.ok(productService.reduceStock(authentication.getName(), id, request.quantity()));
+        return ResponseEntity.ok(productVariantService.reduceStock(authentication.getName(), id, request.quantity()));
     }
 
     @PostMapping(value = {"/{id}/increase_stock", "/{id}/increase_stock/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -72,6 +72,6 @@ public class ProductVariantController {
             @PathVariable Long id,
             @RequestBody StockUpdateRequest request
     ) {
-        return ResponseEntity.ok(productService.increaseStock(authentication.getName(), id, request.quantity()));
+        return ResponseEntity.ok(productVariantService.increaseStock(authentication.getName(), id, request.quantity()));
     }
 }

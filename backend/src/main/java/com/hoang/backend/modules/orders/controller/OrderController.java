@@ -5,7 +5,8 @@ import com.hoang.backend.modules.orders.dto.OrderHistoryResponse;
 import com.hoang.backend.modules.orders.dto.OrderResponse;
 import com.hoang.backend.modules.orders.dto.OrderStatsResponse;
 import com.hoang.backend.modules.orders.dto.OrderStatusUpdateRequest;
-import com.hoang.backend.modules.orders.service.OrderService;
+import com.hoang.backend.modules.orders.service.OrderCommandService;
+import com.hoang.backend.modules.orders.service.OrderQueryService;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,26 +27,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    private final OrderService orderService;
+    private final OrderCommandService orderCommandService;
+    private final OrderQueryService orderQueryService;
 
     @GetMapping(value = {"", "/"})
     public ResponseEntity<java.util.List<OrderResponse>> listMyOrders(Authentication authentication) {
-        return ResponseEntity.ok(orderService.listMyOrders(authentication.getName()));
+        return ResponseEntity.ok(orderQueryService.listMyOrders(authentication.getName()));
     }
 
     @GetMapping(value = {"/{orderId}", "/{orderId}/"})
     public ResponseEntity<OrderResponse> getMyOrder(Authentication authentication, @PathVariable String orderId) {
-        return ResponseEntity.ok(orderService.getMyOrder(authentication.getName(), orderId));
+        return ResponseEntity.ok(orderQueryService.getMyOrder(authentication.getName(), orderId));
     }
 
     @PostMapping(value = {"", "/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderResponse> createOrder(Authentication authentication, @RequestBody(required = false) OrderCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrder(authentication.getName(), request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCommandService.createOrder(authentication.getName(), request));
     }
 
     @PostMapping(value = {"/create-from-cart", "/create-from-cart/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<OrderResponse> createFromCart(Authentication authentication, @RequestBody(required = false) OrderCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.createOrderFromCart(authentication.getName(), request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderCommandService.createOrderFromCart(authentication.getName(), request));
     }
 
     @PatchMapping(value = {"/{orderId}/status", "/{orderId}/status/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -54,12 +56,12 @@ public class OrderController {
             @PathVariable String orderId,
             @RequestBody OrderStatusUpdateRequest request
     ) {
-        return ResponseEntity.ok(orderService.updateOrderStatusAsUser(authentication.getName(), orderId, request.status()));
+        return ResponseEntity.ok(orderCommandService.updateOrderStatusAsUser(authentication.getName(), orderId, request.status()));
     }
 
     @PostMapping(value = {"/{orderId}/cancel", "/{orderId}/cancel/"})
     public ResponseEntity<OrderResponse> cancel(Authentication authentication, @PathVariable String orderId) {
-        return ResponseEntity.ok(orderService.cancelOrder(authentication.getName(), orderId));
+        return ResponseEntity.ok(orderCommandService.cancelOrder(authentication.getName(), orderId));
     }
 
     @GetMapping(value = {"/history", "/history/"})
@@ -68,16 +70,16 @@ public class OrderController {
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "page_size", defaultValue = "10") int pageSize
     ) {
-        return ResponseEntity.ok(orderService.history(authentication.getName(), page, pageSize));
+        return ResponseEntity.ok(orderQueryService.history(authentication.getName(), page, pageSize));
     }
 
     @GetMapping(value = {"/stats", "/stats/"})
     public ResponseEntity<OrderStatsResponse> stats(Authentication authentication) {
-        return ResponseEntity.ok(orderService.myStats(authentication.getName()));
+        return ResponseEntity.ok(orderQueryService.myStats(authentication.getName()));
     }
 
     @GetMapping(value = {"/{orderId}/check-payment", "/{orderId}/check-payment/"})
     public ResponseEntity<Map<String, Object>> checkPayment(Authentication authentication, @PathVariable String orderId) {
-        return ResponseEntity.ok(orderService.checkPaymentStatus(authentication.getName(), orderId));
+        return ResponseEntity.ok(orderQueryService.checkPaymentStatus(authentication.getName(), orderId));
     }
 }

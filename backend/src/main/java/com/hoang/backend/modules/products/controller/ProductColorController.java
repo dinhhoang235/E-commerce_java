@@ -1,7 +1,7 @@
 package com.hoang.backend.modules.products.controller;
 
 import com.hoang.backend.modules.products.dto.ProductColorResponse;
-import com.hoang.backend.modules.products.service.ProductService;
+import com.hoang.backend.modules.products.service.ColorCrudService;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -22,16 +22,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/product-colors")
 public class ProductColorController {
 
-    private final ProductService productService;
+    private final ColorCrudService colorCrudService;
 
     @GetMapping(value = {"", "/"})
     public ResponseEntity<List<ProductColorResponse>> list() {
-        return ResponseEntity.ok(productService.listColors());
+        return ResponseEntity.ok(colorCrudService.listColors());
     }
 
     @PostMapping(value = {"", "/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<ProductColorResponse> create(Authentication authentication, @RequestBody Map<String, Object> payload) {
-        return ResponseEntity.ok(productService.createColor(authentication.getName(), payload));
+        return ResponseEntity.ok(colorCrudService.create(authentication.getName(), payload));
     }
 
     @PutMapping(value = {"/{id}", "/{id}/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -40,12 +40,12 @@ public class ProductColorController {
             @PathVariable Long id,
             @RequestBody Map<String, Object> payload
     ) {
-        return ResponseEntity.ok(productService.updateColor(authentication.getName(), id, payload));
+        return ResponseEntity.ok(colorCrudService.update(authentication.getName(), id, payload));
     }
 
     @DeleteMapping(value = {"/{id}", "/{id}/"})
     public ResponseEntity<Map<String, String>> delete(Authentication authentication, @PathVariable Long id) {
-        productService.deleteColor(authentication.getName(), id);
+        colorCrudService.delete(authentication.getName(), id);
         return ResponseEntity.ok(Map.of("status", "deleted"));
     }
 }

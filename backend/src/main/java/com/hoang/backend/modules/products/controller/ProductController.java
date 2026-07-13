@@ -4,9 +4,10 @@ import com.hoang.backend.common.RequestPayloadReader;
 import com.hoang.backend.modules.products.dto.ProductFiltersResponse;
 import com.hoang.backend.modules.products.dto.ProductResponse;
 import com.hoang.backend.modules.products.dto.ProductVariantResponse;
+import com.hoang.backend.modules.products.service.ProductCommandService;
 import com.hoang.backend.modules.products.service.ProductService;
+import com.hoang.backend.modules.products.service.ProductVariantService;
 import jakarta.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,8 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductCommandService productCommandService;
+    private final ProductVariantService productVariantService;
     private final RequestPayloadReader payloadReader;
 
     @GetMapping(value = {"", "/"})
@@ -64,7 +67,7 @@ public class ProductController {
 
     @GetMapping(value = {"/{id}/variants", "/{id}/variants/"})
     public ResponseEntity<List<ProductVariantResponse>> variants(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductVariants(id));
+        return ResponseEntity.ok(productVariantService.getProductVariants(id));
     }
 
     @GetMapping(value = {"/{id}/recommendations", "/{id}/recommendations/"})
@@ -73,23 +76,23 @@ public class ProductController {
     }
 
     @PostMapping(value = {"", "/"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<ProductResponse> create(Authentication authentication, HttpServletRequest request) throws IOException {
+    public ResponseEntity<ProductResponse> create(Authentication authentication, HttpServletRequest request) throws Exception {
         Map<String, Object> payload = payloadReader.readBody(request);
         MultipartFile imageFile = readImageFile(request);
-        return ResponseEntity.ok(productService.createProduct(authentication.getName(), payload, imageFile));
+        return ResponseEntity.ok(productCommandService.createProduct(authentication.getName(), payload, imageFile, productService));
     }
 
     @PutMapping(value = {"/{id}", "/{id}/"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<ProductResponse> update(Authentication authentication, @PathVariable Long id, HttpServletRequest request)
-            throws IOException {
+            throws Exception {
         Map<String, Object> payload = payloadReader.readBody(request);
         MultipartFile imageFile = readImageFile(request);
-        return ResponseEntity.ok(productService.updateProduct(authentication.getName(), id, payload, imageFile));
+        return ResponseEntity.ok(productCommandService.updateProduct(authentication.getName(), id, payload, imageFile, productService));
     }
 
     @DeleteMapping(value = {"/{id}", "/{id}/"})
     public ResponseEntity<Map<String, String>> delete(Authentication authentication, @PathVariable Long id) {
-        productService.deleteProduct(authentication.getName(), id);
+        productCommandService.deleteProduct(authentication.getName(), id);
         return ResponseEntity.ok(Map.of("status", "deleted"));
     }
 

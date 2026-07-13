@@ -1,15 +1,10 @@
 package com.hoang.backend.modules.users.controller;
 
-/**
- * Controller cho các API thao tác thông tin người dùng đã đăng nhập.
- * Bao gồm account, đổi mật khẩu và danh sách khách hàng cho trang admin.
- */
-
 import com.hoang.backend.common.RequestPayloadReader;
 import com.hoang.backend.modules.users.dto.AccountResponse;
 import com.hoang.backend.modules.users.dto.CustomerListResponse;
 import com.hoang.backend.modules.users.dto.PasswordChangeRequest;
-import com.hoang.backend.modules.users.service.UserService;
+import com.hoang.backend.modules.users.service.UserAccountService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Map;
@@ -31,25 +26,24 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService userService;
+    private final UserAccountService userAccountService;
     private final RequestPayloadReader payloadReader;
 
     @GetMapping(value = {"/me/account", "/me/account/"})
     public ResponseEntity<AccountResponse> getAccount(Authentication authentication) {
-        return ResponseEntity.ok(userService.getCurrentAccount(authentication.getName()));
+        return ResponseEntity.ok(userAccountService.getCurrentAccount(authentication.getName()));
     }
 
     @PatchMapping(value = {"/me/account", "/me/account/"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<AccountResponse> updateAccount(HttpServletRequest request, Authentication authentication) throws IOException {
-        // Hỗ trợ cả JSON thường và multipart/form-data khi có upload avatar.
         Map<String, Object> payload = payloadReader.readBody(request);
         MultipartFile avatarFile = payloadReader.readAvatarFile(request);
-        return ResponseEntity.ok(userService.updateCurrentAccount(authentication.getName(), payload, avatarFile));
+        return ResponseEntity.ok(userAccountService.updateCurrentAccount(authentication.getName(), payload, avatarFile));
     }
 
     @PostMapping(value = {"/change_password", "/change_password/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> changePassword(Authentication authentication, @RequestBody PasswordChangeRequest request) {
-        userService.changePassword(authentication.getName(), request);
+        userAccountService.changePassword(authentication.getName(), request);
         return ResponseEntity.ok(Map.of("status", "password updated"));
     }
 
@@ -60,6 +54,6 @@ public class UserController {
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int page_size
     ) {
-        return ResponseEntity.ok(userService.listCustomers(search, status, page, page_size));
+        return ResponseEntity.ok(userAccountService.listCustomers(search, status, page, page_size));
     }
 }

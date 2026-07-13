@@ -1,9 +1,6 @@
 package com.hoang.backend.modules.users.service;
 
-/**
- * Service nghiệp vụ chính cho module users.
- * Xử lý đăng ký/đăng nhập, cập nhật account, đổi mật khẩu, địa chỉ và danh sách khách hàng admin.
- */
+import static com.hoang.backend.common.util.TextUtils.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoang.backend.modules.users.dto.AccountResponse;
@@ -11,13 +8,7 @@ import com.hoang.backend.modules.users.dto.AddressRequest;
 import com.hoang.backend.modules.users.dto.AddressResponse;
 import com.hoang.backend.modules.users.dto.AdminCustomerResponse;
 import com.hoang.backend.modules.users.dto.CustomerListResponse;
-import com.hoang.backend.modules.users.dto.EmailAvailabilityResponse;
-import com.hoang.backend.modules.users.dto.LoginRequest;
 import com.hoang.backend.modules.users.dto.PasswordChangeRequest;
-import com.hoang.backend.modules.users.dto.RegisterRequest;
-import com.hoang.backend.modules.users.dto.RegisterResponse;
-import com.hoang.backend.modules.users.dto.TokenResponse;
-import com.hoang.backend.modules.users.dto.UsernameAvailabilityResponse;
 import com.hoang.backend.modules.users.entity.Account;
 import com.hoang.backend.modules.users.entity.Address;
 import com.hoang.backend.modules.users.entity.AppUser;
@@ -47,7 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class UserService {
+public class UserAccountService {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -58,89 +49,6 @@ public class UserService {
     private final TokenService tokenService;
     private final ObjectMapper objectMapper;
 
-    public RegisterResponse register(RegisterRequest request) {
-        // Kiểm tra dữ liệu đầu vào trước khi tạo user mới.
-        validateRegistration(request);
-
-        AppUser user = new AppUser();
-        user.setUsername(request.username().trim());
-        user.setEmail(normalizeEmail(request.email()));
-        user.setPassword(passwordEncoder.encode(request.password()));
-        user.setFirstName(safeTrim(request.first_name()));
-        user.setLastName(safeTrim(request.last_name()));
-        user.setIsStaff(false);
-        user.setIsSuperuser(false);
-        user = userRepository.save(user);
-
-        Account account = new Account();
-        account.setUser(user);
-        account.setFirstName(user.getFirstName());
-        account.setLastName(user.getLastName());
-        account.setPhone(safeTrim(request.phone()));
-        account.setAvatar(null);
-        accountRepository.save(account);
-
-        TokenResponse token = tokenService.issueTokens(user);
-        return new RegisterResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                account.getFirstName(),
-                account.getLastName(),
-                account.getPhone(),
-                token
-        );
-    }
-
-    public TokenResponse login(LoginRequest request) {
-        // Hỗ trợ đăng nhập bằng username hoặc email.
-        String identifier = safeTrim(request.username_or_email());
-        String rawPassword = request.password() == null ? "" : request.password();
-
-        AppUser user = findByUsernameOrEmail(identifier)
-                .orElseThrow(() -> new IllegalArgumentException("No user found with this username/email."));
-
-        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid credentials.");
-        }
-
-        user.setLastLogin(LocalDateTime.now());
-        userRepository.save(user);
-        return tokenService.issueTokens(user);
-    }
-
-    public TokenResponse refresh(String refreshToken) {
-        Long userId = tokenService.resolveRefreshToken(refreshToken)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token."));
-
-        tokenService.revokeUserTokens(userId);
-        AppUser user = userRepository.findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("User not found."));
-        return tokenService.issueTokens(user);
-    }
-
-    public UsernameAvailabilityResponse checkUsernameAvailability(String username) {
-        String normalized = safeTrim(username);
-        if (normalized.length() < 3) {
-            throw new IllegalArgumentException("Username must be at least 3 characters long");
-        }
-
-        if (!normalized.replace("_", "").chars().allMatch(Character::isLetterOrDigit)) {
-            throw new IllegalArgumentException("Username can only contain letters, numbers, and underscores");
-        }
-
-        return new UsernameAvailabilityResponse(normalized, !userRepository.existsByUsernameIgnoreCase(normalized));
-    }
-
-    public EmailAvailabilityResponse checkEmailAvailability(String email) {
-        String normalized = normalizeEmail(email);
-        if (normalized.isBlank() || !normalized.contains("@") || !normalized.substring(normalized.indexOf('@')).contains(".")) {
-            throw new IllegalArgumentException("Please enter a valid email address");
-        }
-
-        return new EmailAvailabilityResponse(normalized, !userRepository.existsByEmailIgnoreCase(normalized));
-    }
-
     @Transactional(readOnly = true)
     public AccountResponse getCurrentAccount(String username) {
         AppUser user = requireUser(username);
@@ -148,7 +56,6 @@ public class UserService {
     }
 
     public AccountResponse updateCurrentAccount(String username, Map<String, Object> payload, MultipartFile avatarFile) throws IOException {
-        // Cập nhật đồng thời thông tin account và địa chỉ mặc định (nếu có trong payload).
         AppUser user = requireUser(username);
         Account account = accountRepository.findByUserId(user.getId())
                 .orElseGet(() -> {
@@ -192,16 +99,16 @@ public class UserService {
         if (search != null && !search.isBlank()) {
             String normalized = search.toLowerCase(Locale.ROOT);
             users = users.stream()
-                    .filter(user -> containsIgnoreCase(user.getUsername(), normalized)
-                            || containsIgnoreCase(user.getEmail(), normalized)
-                            || containsIgnoreCase(user.getFirstName(), normalized)
-                            || containsIgnoreCase(user.getLastName(), normalized))
+                    .filter(u -> containsIgnoreCase(u.getUsername(), normalized)
+                            || containsIgnoreCase(u.getEmail(), normalized)
+                            || containsIgnoreCase(u.getFirstName(), normalized)
+                            || containsIgnoreCase(u.getLastName(), normalized))
                     .collect(Collectors.toList());
         }
 
         if (status != null && !status.isBlank()) {
             users = users.stream()
-                    .filter(user -> status.equalsIgnoreCase(resolveStatus(user)))
+                    .filter(u -> status.equalsIgnoreCase(resolveStatus(u)))
                     .collect(Collectors.toList());
         }
 
@@ -219,13 +126,6 @@ public class UserService {
         return new CustomerListResponse(total, safePage, safePageSize, totalPages, results);
     }
 
-    @Transactional(readOnly = true)
-    public Optional<AppUser> findByAccessToken(String accessToken) {
-        return tokenService.resolveAccessToken(accessToken)
-                .flatMap(userRepository::findById);
-    }
-
-    @Transactional(readOnly = true)
     public AppUser requireUser(String username) {
         return findByUsernameOrEmail(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found."));
@@ -238,33 +138,6 @@ public class UserService {
 
         return userRepository.findByUsernameIgnoreCase(value)
                 .or(() -> userRepository.findByEmailIgnoreCase(value));
-    }
-
-    private void validateRegistration(RegisterRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Registration payload is required.");
-        }
-
-        if (request.username() == null || request.username().trim().isBlank()) {
-            throw new IllegalArgumentException("Username is required.");
-        }
-
-        if (request.password() == null || request.password().length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters long.");
-        }
-
-        if (!Objects.equals(request.password(), request.confirm_password())) {
-            throw new IllegalArgumentException("Password fields didn't match.");
-        }
-
-        if (userRepository.existsByUsernameIgnoreCase(request.username().trim())) {
-            throw new IllegalArgumentException("This username is already taken.");
-        }
-
-        String email = normalizeEmail(request.email());
-        if (!email.isBlank() && userRepository.existsByEmailIgnoreCase(email)) {
-            throw new IllegalArgumentException("This email is already in use.");
-        }
     }
 
     private void applyAccountUpdates(AppUser user, Account account, Map<String, Object> payload, MultipartFile avatarFile) throws IOException {
@@ -313,8 +186,9 @@ public class UserService {
         String zipCode = safeTrim(request.zip_code());
         String country = normalizeCountry(request.country());
 
-        Optional<Address> existing = addressRepository.findFirstByUserIdAndAddressLine1IgnoreCaseAndCityIgnoreCaseAndStateIgnoreCaseAndZipCodeIgnoreCaseAndCountryIgnoreCase(
-                user.getId(), addressLine1, city, state, zipCode, country);
+        Optional<Address> existing = addressRepository
+                .findFirstByUserIdAndAddressLine1IgnoreCaseAndCityIgnoreCaseAndStateIgnoreCaseAndZipCodeIgnoreCaseAndCountryIgnoreCase(
+                        user.getId(), addressLine1, city, state, zipCode, country);
 
         Address address = existing.orElseGet(Address::new);
         address.setUser(user);
@@ -342,13 +216,13 @@ public class UserService {
         Account account = accountRepository.findByUserId(user.getId()).orElse(null);
         AddressResponse addressResponse = address == null ? null : toAddressResponse(address, user.getEmail());
         String avatar = account == null ? null : account.getAvatarUrl();
-        String phone = account == null ? "" : safeString(account.getPhone());
+        String phone = account == null ? "" : safe(account.getPhone());
 
         return new AccountResponse(
                 user.getId(),
                 user.getUsername(),
-                account == null ? user.getFirstName() : safeString(account.getFirstName()),
-                account == null ? user.getLastName() : safeString(account.getLastName()),
+                account == null ? user.getFirstName() : safe(account.getFirstName()),
+                account == null ? user.getLastName() : safe(account.getLastName()),
                 avatar,
                 user.getEmail(),
                 phone,
@@ -359,14 +233,14 @@ public class UserService {
     private AddressResponse toAddressResponse(Address address, String email) {
         return new AddressResponse(
                 address.getId(),
-                safeString(address.getFirstName()),
-                safeString(address.getLastName()),
-                safeString(address.getPhone()),
-                safeString(address.getAddressLine1()),
-                safeString(address.getCity()),
-                safeString(address.getState()),
-                safeString(address.getZipCode()),
-                safeString(address.getCountry()),
+                safe(address.getFirstName()),
+                safe(address.getLastName()),
+                safe(address.getPhone()),
+                safe(address.getAddressLine1()),
+                safe(address.getCity()),
+                safe(address.getState()),
+                safe(address.getZipCode()),
+                safe(address.getCountry()),
                 address.getCountryLabel(),
                 address.getCreatedAt() == null ? null : ISO_FORMATTER.format(address.getCreatedAt()),
                 address.isDefault(),
@@ -378,7 +252,8 @@ public class UserService {
         Account account = accountRepository.findByUserId(user.getId()).orElse(null);
         Address locationAddress = latestAddress(user.getId());
 
-        String name = buildName(account == null ? user.getFirstName() : account.getFirstName(), account == null ? user.getLastName() : account.getLastName(), user.getUsername());
+        String name = buildName(account == null ? user.getFirstName() : account.getFirstName(),
+                account == null ? user.getLastName() : account.getLastName(), user.getUsername());
         String location = locationAddress == null ? "No address" : locationAddress.getCity() + ", " + locationAddress.getState();
         String joinDate = user.getDateJoined() == null ? null : user.getDateJoined().toLocalDate().toString();
 
@@ -386,7 +261,7 @@ public class UserService {
                 user.getId(),
                 name,
                 user.getEmail(),
-                account == null ? "" : safeString(account.getPhone()),
+                account == null ? "" : safe(account.getPhone()),
                 location,
                 0,
                 0.0,
@@ -404,8 +279,8 @@ public class UserService {
     }
 
     private String buildName(String firstName, String lastName, String fallback) {
-        String first = safeString(firstName);
-        String last = safeString(lastName);
+        String first = safe(firstName);
+        String last = safe(lastName);
 
         if (!first.isBlank() && !last.isBlank()) {
             return first + " " + last;
@@ -420,7 +295,6 @@ public class UserService {
     }
 
     private String storeAvatar(Long userId, MultipartFile file) throws IOException {
-        // Lưu file vào thư mục uploads theo từng user để dễ quản lý.
         String safeFileName = Objects.requireNonNullElse(file.getOriginalFilename(), "avatar").replaceAll("[^a-zA-Z0-9._-]", "_");
         Path uploadDir = Path.of("uploads", "user_" + userId);
         Files.createDirectories(uploadDir);
@@ -431,10 +305,6 @@ public class UserService {
 
     private boolean containsIgnoreCase(String value, String needle) {
         return value != null && value.toLowerCase(Locale.ROOT).contains(needle);
-    }
-
-    private String normalizeEmail(String email) {
-        return safeTrim(email).toLowerCase(Locale.ROOT);
     }
 
     private String normalizeCountry(String country) {
@@ -455,25 +325,16 @@ public class UserService {
         };
     }
 
-    private String safeTrim(String value) {
-        return value == null ? "" : value.trim();
-    }
-
-    private String safeString(String value) {
-        return value == null ? "" : value;
-    }
-
     private String stringValue(Object value, String fallback) {
         if (value == null) {
-            return safeString(fallback);
+            return safe(fallback);
         }
 
         String stringValue = value.toString().trim();
-        return stringValue.isEmpty() ? safeString(fallback) : stringValue;
+        return stringValue.isEmpty() ? safe(fallback) : stringValue;
     }
 
     private boolean isBlankValue(Object value) {
         return value == null || value.toString().isBlank();
     }
-
 }

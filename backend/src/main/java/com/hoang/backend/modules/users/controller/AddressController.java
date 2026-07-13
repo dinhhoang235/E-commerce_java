@@ -1,13 +1,8 @@
 package com.hoang.backend.modules.users.controller;
 
-/**
- * Controller xử lý API địa chỉ của người dùng.
- * Hiện tại hỗ trợ tạo mới địa chỉ qua endpoint /api/addresses.
- */
-
 import com.hoang.backend.modules.users.dto.AddressRequest;
 import com.hoang.backend.modules.users.dto.AddressResponse;
-import com.hoang.backend.modules.users.service.UserService;
+import com.hoang.backend.modules.users.service.UserAccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,10 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/addresses")
 public class AddressController {
 
-    private final UserService userService;
+    private final UserAccountService userAccountService;
 
     @PostMapping(value = {"", "/"}, consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AddressResponse> createAddress(Authentication authentication, @RequestBody AddressRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createOrUpdateAddress(authentication.getName(), request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(userAccountService.createOrUpdateAddress(authentication.getName(), request));
     }
 }
