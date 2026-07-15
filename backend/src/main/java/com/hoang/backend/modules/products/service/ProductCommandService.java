@@ -4,6 +4,7 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoang.backend.common.InMemoryCacheService;
+import com.hoang.backend.common.storage.MinioService;
 import com.hoang.backend.modules.products.dto.ProductResponse;
 import com.hoang.backend.modules.products.entity.Category;
 import com.hoang.backend.modules.products.entity.Product;
@@ -28,6 +29,7 @@ public class ProductCommandService {
     private final AppUserRepository appUserRepository;
     private final InMemoryCacheService cacheService;
     private final ObjectMapper objectMapper;
+    private final MinioService minioService;
 
     public ProductResponse createProduct(String authenticatedUsername, Map<String, Object> payload,
                                           MultipartFile imageFile, ProductService productService) throws IOException {
@@ -110,7 +112,7 @@ public class ProductCommandService {
 
         if (imageFile != null && !imageFile.isEmpty()) {
             String categorySlug = product.getCategory() == null ? "uncategorized" : safeString(product.getCategory().getSlug());
-            product.setImage(storeImage("products", categorySlug, imageFile));
+            product.setImage(minioService.storeImage("products", categorySlug, imageFile));
         }
     }
 

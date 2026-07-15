@@ -4,6 +4,7 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.hoang.backend.common.InMemoryCacheService;
 import com.hoang.backend.common.crud.BaseCrudService;
+import com.hoang.backend.common.storage.MinioService;
 import com.hoang.backend.modules.products.dto.CategoryResponse;
 import com.hoang.backend.modules.products.entity.Category;
 import com.hoang.backend.modules.products.repository.CategoryRepository;
@@ -26,15 +27,18 @@ public class CategoryCrudService extends BaseCrudService<Category, CategoryRespo
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
     private final AppUserRepository appUserRepository;
+    private final MinioService minioService;
 
     public CategoryCrudService(AppUserRepository appUserRepository,
                                InMemoryCacheService cacheService,
                                CategoryRepository categoryRepository,
-                               ProductRepository productRepository) {
+                               ProductRepository productRepository,
+                               MinioService minioService) {
         super(cacheService);
         this.appUserRepository = appUserRepository;
         this.categoryRepository = categoryRepository;
         this.productRepository = productRepository;
+        this.minioService = minioService;
     }
 
     @Override
@@ -138,7 +142,7 @@ public class CategoryCrudService extends BaseCrudService<Category, CategoryRespo
         Category category = createNewEntity();
         applyPayload(category, payload);
         if (imageFile != null && !imageFile.isEmpty()) {
-            category.setImage(storeImage("categories", safeString(category.getSlug()), imageFile));
+            category.setImage(minioService.storeImage("categories", safeString(category.getSlug()), imageFile));
         }
         CategoryResponse response = toResponse(categoryRepository.save(category));
         invalidateCache();
@@ -153,7 +157,7 @@ public class CategoryCrudService extends BaseCrudService<Category, CategoryRespo
                 .orElseThrow(() -> new IllegalArgumentException("Category not found."));
         applyPayload(category, payload);
         if (imageFile != null && !imageFile.isEmpty()) {
-            category.setImage(storeImage("categories", safeString(category.getSlug()), imageFile));
+            category.setImage(minioService.storeImage("categories", safeString(category.getSlug()), imageFile));
         }
         CategoryResponse response = toResponse(categoryRepository.save(category));
         invalidateCache();

@@ -6,14 +6,14 @@ const nextConfig: NextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8000',
-        pathname: '/media/**',
+        port: '9000',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'localhost',
-        port: '8000',
-        pathname: '/media/**',
+        port: '9000',
+        pathname: '/**',
       },
     ],
     dangerouslyAllowSVG: true,

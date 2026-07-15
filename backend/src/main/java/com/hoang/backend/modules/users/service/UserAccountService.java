@@ -3,6 +3,7 @@ package com.hoang.backend.modules.users.service;
 import static com.hoang.backend.common.util.TextUtils.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hoang.backend.common.storage.MinioService;
 import com.hoang.backend.modules.users.dto.AccountResponse;
 import com.hoang.backend.modules.users.dto.AddressRequest;
 import com.hoang.backend.modules.users.dto.AddressResponse;
@@ -16,9 +17,6 @@ import com.hoang.backend.modules.users.repository.AccountRepository;
 import com.hoang.backend.modules.users.repository.AddressRepository;
 import com.hoang.backend.modules.users.repository.AppUserRepository;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -48,6 +46,7 @@ public class UserAccountService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final ObjectMapper objectMapper;
+    private final MinioService minioService;
 
     @Transactional(readOnly = true)
     public AccountResponse getCurrentAccount(String username) {
@@ -295,12 +294,7 @@ public class UserAccountService {
     }
 
     private String storeAvatar(Long userId, MultipartFile file) throws IOException {
-        String safeFileName = Objects.requireNonNullElse(file.getOriginalFilename(), "avatar").replaceAll("[^a-zA-Z0-9._-]", "_");
-        Path uploadDir = Path.of("uploads", "user_" + userId);
-        Files.createDirectories(uploadDir);
-        Path destination = uploadDir.resolve(safeFileName);
-        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        return "/uploads/user_" + userId + "/" + safeFileName;
+        return minioService.storeAvatar(userId, file);
     }
 
     private boolean containsIgnoreCase(String value, String needle) {
