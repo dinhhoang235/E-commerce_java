@@ -40,7 +40,7 @@ public class WishlistService {
     private final ProductVariantRepository productVariantRepository;
     private final AppUserRepository appUserRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public WishlistResponse getWishlist(String authenticatedUsername) {
         Wishlist wishlist = getOrCreateWishlist(authenticatedUsername);
         return toWishlistResponse(wishlist);

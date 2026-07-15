@@ -39,7 +39,7 @@ public class CartService {
     private final ProductVariantRepository productVariantRepository;
     private final AppUserRepository appUserRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CartResponse getCart(String authenticatedUsername) {
         Cart cart = getOrCreateCart(authenticatedUsername);
         return toCartResponse(cart);
