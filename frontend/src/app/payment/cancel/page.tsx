@@ -57,7 +57,7 @@ export default function PaymentCancelPage() {
           </div>
 
           <div className="text-sm text-gray-500 pt-2">
-            <p>Need help? <span className="text-blue-600 cursor-pointer hover:underline">Contact Support</span></p>
+            <p>Need help? <a href="mailto:support@applestore.com" className="text-blue-600 cursor-pointer hover:underline">Contact Support</a></p>
           </div>
         </CardContent>
       </Card>

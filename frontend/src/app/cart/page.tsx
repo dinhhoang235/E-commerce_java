@@ -22,9 +22,8 @@ export default function CartPage() {
   const [promoLoading, setPromoLoading] = useState(false)
 
   const shipping = 0 // Free shipping
-  const tax = total * 0.08 // 8% tax
   const discountedTotal = total - discount
-  const finalTotal = discountedTotal + shipping + tax
+  const finalTotal = discountedTotal + shipping
 
   const handleQuantityChange = async (itemId: number, newQuantity: number) => {
     if (newQuantity < 1) return
@@ -254,10 +253,6 @@ export default function CartPage() {
                 <div className="flex justify-between">
                   <span>Shipping</span>
                   <span className="text-green-600">Free</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (8%)</span>
-                  <span>${tax.toFixed(2)}</span>
                 </div>
               </div>
 

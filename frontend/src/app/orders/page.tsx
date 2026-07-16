@@ -15,13 +15,12 @@ import { OrderStatusBadge } from "@/components/ui/order-status-badge"
 import { PaymentStatusBadge } from "@/components/ui/payment-status-badge"
 
 export default function OrdersPage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Handle order cancellation
   const handleOrderCancelled = (cancelledOrder: Order) => {
     setOrders(prevOrders => 
       prevOrders.map(order => 
@@ -31,6 +30,7 @@ export default function OrdersPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push("/login")
       return
@@ -48,16 +48,16 @@ export default function OrdersPage() {
           description: "Failed to load your orders. Please try again.",
           variant: "destructive",
         })
-        setOrders([]) // Set empty array on error
+        setOrders([])
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchOrders()
-  }, [user, router, toast])
+  }, [user, authLoading, router, toast])
 
-  if (!user) {
+  if (authLoading || !user) {
     return null
   }
 

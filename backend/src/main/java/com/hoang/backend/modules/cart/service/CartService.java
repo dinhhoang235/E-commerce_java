@@ -126,13 +126,11 @@ public class CartService {
         touchCart(cart);
     }
 
-    @Transactional(readOnly = true)
     public CartCountResponse count(String authenticatedUsername) {
         CartResponse response = getCart(authenticatedUsername);
         return new CartCountResponse(response.total_items());
     }
 
-    @Transactional(readOnly = true)
     public CartSummaryResponse summary(String authenticatedUsername) {
         CartResponse response = getCart(authenticatedUsername);
         return new CartSummaryResponse(response.total_items(), response.total_price());

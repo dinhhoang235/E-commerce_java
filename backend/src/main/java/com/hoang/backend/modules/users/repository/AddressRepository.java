@@ -21,4 +21,6 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
             String zipCode,
             String country
     );
+
+    void deleteByUserId(Long userId);
 }

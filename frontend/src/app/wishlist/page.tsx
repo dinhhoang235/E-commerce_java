@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { WishlistItemCard } from "@/components/wishlist-item-card"
@@ -12,29 +13,20 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export default function WishlistPage() {
   const { items, total, loading, error, clearWishlist, refreshWishlist } = useWishlist()
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
-    if (user) {
-      refreshWishlist()
+    if (authLoading) return
+    if (!user) {
+      router.push("/login")
+      return
     }
-  }, [user, refreshWishlist])
+    refreshWishlist()
+  }, [user, authLoading, refreshWishlist, router])
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <Heart className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Please Log In</h1>
-          <p className="text-muted-foreground mb-6">
-            You need to be logged in to view your wishlist.
-          </p>
-          <Link href="/auth/login">
-            <Button>Log In</Button>
-          </Link>
-        </div>
-      </div>
-    )
+  if (authLoading || !user) {
+    return null
   }
 
   if (loading && items.length === 0) {

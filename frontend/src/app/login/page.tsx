@@ -20,13 +20,16 @@ export default function LoginPage() {
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState("")
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const { login, isLoading } = useAuth()
     const router = useRouter()
     const { toast } = useToast()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError("") // Clear previous errors
+        setError("")
+        if (isSubmitting) return
+        setIsSubmitting(true)
         
         try {
             const token = await loginApi({
@@ -51,7 +54,9 @@ export default function LoginPage() {
                 const apiError = error as { response?: { data?: { detail?: string } } }
                 message = apiError.response?.data?.detail || "Login failed."
             }
-            setError(message) // Use error state instead of alert
+            setError(message)
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -137,8 +142,8 @@ export default function LoginPage() {
                     </CardContent>
 
                     <CardFooter className="flex flex-col space-y-4">
-                        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Sign In
                         </Button>
 

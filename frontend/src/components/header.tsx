@@ -104,7 +104,7 @@ export function Header() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2 mr-8">
             <div className="bg-slate-900 text-white p-2 rounded-lg">
               <span className="font-bold text-lg">A</span>
             </div>

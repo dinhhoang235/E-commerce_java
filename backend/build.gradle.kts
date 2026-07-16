@@ -34,6 +34,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-core")
 	implementation("com.fasterxml.jackson.core:jackson-annotations")
 	implementation("com.fasterxml.jackson.core:jackson-databind")
+	implementation("org.springframework.boot:spring-boot-starter-amqp")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("com.stripe:stripe-java:32.0.0")

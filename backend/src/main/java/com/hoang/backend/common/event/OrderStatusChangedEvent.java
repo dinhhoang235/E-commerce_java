@@ -1,19 +1,15 @@
 package com.hoang.backend.common.event;
 
-import lombok.Getter;
-import org.springframework.context.ApplicationEvent;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-public class OrderStatusChangedEvent extends ApplicationEvent {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderStatusChangedEvent {
 
-    private final String orderId;
-    private final String previousStatus;
-    private final String newStatus;
-
-    public OrderStatusChangedEvent(Object source, String orderId, String previousStatus, String newStatus) {
-        super(source);
-        this.orderId = orderId;
-        this.previousStatus = previousStatus;
-        this.newStatus = newStatus;
-    }
+    private String orderId;
+    private String previousStatus;
+    private String newStatus;
 }

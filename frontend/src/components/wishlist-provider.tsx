@@ -206,7 +206,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     try {
       const response = await wishlistService.clearWishlist()
       toast.success(response.message)
-      setItems([])
+      await fetchWishlist()
     } catch (error: any) {
       const message = error.response?.data?.error || "Failed to clear wishlist"
       toast.error(message)

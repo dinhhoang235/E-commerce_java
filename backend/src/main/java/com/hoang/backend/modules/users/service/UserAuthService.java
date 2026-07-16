@@ -152,7 +152,13 @@ public class UserAuthService {
         }
 
         String email = normalizeEmail(request.email());
-        if (!email.isBlank() && userRepository.existsByEmailIgnoreCase(email)) {
+        if (email.isBlank()) {
+            throw new IllegalArgumentException("Email is required.");
+        }
+        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            throw new IllegalArgumentException("Invalid email format.");
+        }
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new IllegalArgumentException("This email is already in use.");
         }
     }

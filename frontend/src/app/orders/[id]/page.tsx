@@ -18,7 +18,7 @@ import { OrderStatusBadge } from "@/components/ui/order-status-badge"
 import { PaymentStatusBadge } from "@/components/ui/payment-status-badge"
 
 export default function OrderDetailPage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
@@ -29,12 +29,10 @@ export default function OrderDetailPage() {
 
   const orderId = params.id as string
 
-  // Handle image load errors
   const handleImageError = (itemId: number) => {
     setImageErrors(prev => new Set(prev).add(itemId))
   }
 
-  // Handle order cancellation
   const handleOrderCancelled = (cancelledOrder: Order) => {
     setOrder(cancelledOrder)
     toast({
@@ -43,9 +41,7 @@ export default function OrderDetailPage() {
     })
   }
 
-  // Handle refund processed
   const handleRefundProcessed = () => {
-    // Refresh the order data to reflect refund status
     const fetchOrder = async () => {
       try {
         const orderData = await userOrdersApi.getOrderById(orderId)
@@ -63,6 +59,7 @@ export default function OrderDetailPage() {
   }
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push("/login")
       return

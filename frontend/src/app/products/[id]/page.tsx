@@ -9,11 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { ShoppingCart, Heart, Share2, ChevronLeft, Star, Check, Shield, Truck } from "lucide-react"
 import { useCart } from "@/components/cart-provider"
+import { useAuth } from "@/components/auth-provider"
 import { WishlistButton } from "@/components/wishlist-button"
 import { ProductGallery } from "@/components/product-gallery"
 import { ProductSpecs } from "@/components/product-specs"
 import { ProductRecommendations } from "@/components/product-recommendations"
-import { getAllProducts } from "@/lib/services/products"
+import { getAllProducts, getProductById } from "@/lib/services/products"
 import { WriteReviewDialog } from "@/components/write-review-dialog"
 import { ReviewList } from "@/components/review-list"
 import { StarRating } from "@/components/star-rating"
@@ -74,6 +75,7 @@ export default function ProductPage() {
   const params = useParams()
   const router = useRouter()
   const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
   const { toast } = useToast()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -85,20 +87,15 @@ export default function ProductPage() {
   const [reviewRefreshTrigger, setReviewRefreshTrigger] = useState(0)
   const [currentPrice, setCurrentPrice] = useState<number>(0)
 
+  // Compute the currently selected variant for stock checks
+  const selectedVariant = product?.variants?.find(variant => 
+    variant.color.name === selectedColor && variant.storage === selectedStorage
+  ) || product?.variants?.find(variant => variant.color.name === selectedColor) || product?.variants?.[0] || null
+
   const refreshProductData = async () => {
     try {
       const productId = params.id as string
-      const response = await getAllProducts()
-      
-      let productsArray: Product[] = [];
-      
-      if (response && response.results && Array.isArray(response.results)) {
-        productsArray = response.results;
-      } else if (Array.isArray(response)) {
-        productsArray = response;
-      }
-      
-      const foundProduct = productsArray.find((p: Product) => String(p.id) === String(productId))
+      const foundProduct = await getProductById(productId)
       if (foundProduct) {
         setProduct(foundProduct)
       }
@@ -166,33 +163,14 @@ export default function ProductPage() {
       try {
         setLoading(true)
         const productId = params.id as string
-        const response = await getAllProducts()
-        
-        let productsArray: Product[] = [];
-        
-        // Handle paginated response structure
-        if (response && response.results && Array.isArray(response.results)) {
-          productsArray = response.results;
-        } else if (Array.isArray(response)) {
-          productsArray = response;
-        } else {
-          console.error("Unexpected API response format:", response);
-          setError("Failed to load product data. Please try again later.");
-          setLoading(false);
-          return;
-        }
-        
-        // Compare as strings to ensure consistent matching regardless of ID format
-        const foundProduct = productsArray.find((p: Product) => String(p.id) === String(productId))
+        const foundProduct = await getProductById(productId)
 
         if (foundProduct) {
           setProduct(foundProduct)
-          // Set default selections
           const defaultColor = foundProduct.available_colors && foundProduct.available_colors.length > 0 
             ? foundProduct.available_colors[0].name 
             : "";
           
-          // Get available storages for the default color
           const availableStoragesForColor = getAvailableStoragesForColor(defaultColor, foundProduct);
           const defaultStorage = availableStoragesForColor.length > 0 
             ? availableStoragesForColor[0] 
@@ -201,7 +179,6 @@ export default function ProductPage() {
           setSelectedColor(defaultColor)
           setSelectedStorage(defaultStorage)
           
-          // Set initial price
           updatePrice(defaultColor, defaultStorage, foundProduct)
           setLoading(false)
         } else {
@@ -220,6 +197,11 @@ export default function ProductPage() {
 
   const handleAddToCart = async () => {
     if (!product) return
+
+    if (!isAuthenticated) {
+      router.push("/login")
+      return
+    }
 
     try {
       setAddingToCart(true)
@@ -251,6 +233,7 @@ export default function ProductPage() {
         image: product.image || '',
         color: selectedColor,
         storage: selectedStorage,
+        quantity,
       })
       
       toast({
@@ -453,10 +436,21 @@ export default function ProductPage() {
                 -
               </Button>
               <span className="w-12 text-center">{quantity}</span>
-              <Button variant="outline" size="icon" onClick={() => setQuantity(quantity + 1)}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  const maxStock = selectedVariant?.stock ?? selectedVariant?.total_stock ?? 999
+                  setQuantity(Math.min(quantity + 1, maxStock))
+                }}
+                disabled={quantity >= (selectedVariant?.stock ?? selectedVariant?.total_stock ?? 999)}
+              >
                 +
               </Button>
             </div>
+            {selectedVariant && selectedVariant.stock <= 5 && selectedVariant.stock > 0 && (
+              <p className="text-sm text-orange-600">Only {selectedVariant.stock} left in stock</p>
+            )}
           </div>
 
           {/* Add to Cart and Wishlist */}

@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,6 +46,12 @@ public class UserController {
     public ResponseEntity<Map<String, String>> changePassword(Authentication authentication, @RequestBody PasswordChangeRequest request) {
         userAccountService.changePassword(authentication.getName(), request);
         return ResponseEntity.ok(Map.of("status", "password updated"));
+    }
+
+    @DeleteMapping(value = {"/me/account", "/me/account/"})
+    public ResponseEntity<Map<String, String>> deleteAccount(Authentication authentication) {
+        userAccountService.deleteAccount(authentication.getName());
+        return ResponseEntity.ok(Map.of("status", "account deleted"));
     }
 
     @GetMapping(value = {"/admin/customers", "/admin/customers/"})

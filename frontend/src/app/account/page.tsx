@@ -460,9 +460,14 @@ export default function AccountPage() {
     })
   }
 
-  const handleDeleteAccount = () => {
-    // In a real app, this would show a confirmation dialog
+  const handleDeleteAccount = async () => {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      try {
+        const { deleteAccount } = await import("@/lib/services/auth")
+        await deleteAccount()
+      } catch (error) {
+        console.error("Failed to delete account:", error)
+      }
       logout()
       router.push("/")
       toast({

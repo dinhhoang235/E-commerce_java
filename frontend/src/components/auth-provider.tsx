@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const register = async (userData: RegisterData): Promise<boolean> => {
         setIsLoading(true)
         try {
-            const user = await registerAPI({
+            await registerAPI({
                 username: userData.username,
                 email: userData.email,
                 password: userData.password,
@@ -95,11 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 phone: userData.phone,
             })
 
-            // Automatically log in after registration
-            await login({
-                access: localStorage.getItem('access_token') || '',
-                refresh: localStorage.getItem('refresh_token') || '',
-            })
+            // registerAPI stores tokens in localStorage if the API returns them
+            const access = localStorage.getItem('access_token')
+            const refresh = localStorage.getItem('refresh_token')
+
+            if (access && refresh) {
+                await fetchProfile()
+            }
 
             return true
         } catch (error) {
@@ -110,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const apiError = error as { response?: { data?: any } }
                 const errorData = apiError.response?.data
 
-                // Handle different types of error responses
                 if (errorData) {
                     if (typeof errorData === 'string') {
                         message = errorData
@@ -123,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     } else if (errorData.non_field_errors) {
                         message = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : errorData.non_field_errors
                     } else {
-                        // Try to get the first error message from any field
                         const firstError = Object.values(errorData)[0]
                         if (firstError) {
                             message = Array.isArray(firstError) ? firstError[0] : firstError
@@ -137,27 +137,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             alert(message)
+            setIsLoading(false)
+            return false
         }
-
-        setIsLoading(false)
-        return false
     }
 
     const updateUser = async (userData: Partial<User>) => {
         try {
-            const updated = await updateCurrentUser(userData) // gọi API PATCH
+            const updated = await updateCurrentUser(userData)
             setUser(updated)
-            localStorage.setItem("user", JSON.stringify(updated))
             return updated
         } catch (error) {
             console.error("Failed to update user:", error)
-            throw error // Re-throw to allow component to handle
+            throw error
         }
     }
 
     const setUserData = (userData: User) => {
         setUser(userData)
-        localStorage.setItem("user", JSON.stringify(userData))
     }
 
     // Load user on app start

@@ -17,7 +17,7 @@ interface CartItem {
 
 interface CartContextType {
   items: CartItem[]
-  addItem: (item: Omit<CartItem, "quantity" | "itemId"> & { productId: number; color?: string; storage?: string }) => Promise<void>
+  addItem: (item: Omit<CartItem, "quantity" | "itemId"> & { productId: number; color?: string; storage?: string; quantity?: number }) => Promise<void>
   removeItem: (itemId: number) => Promise<void>
   updateQuantity: (itemId: number, quantity: number) => Promise<void>
   clearCart: () => Promise<void>
@@ -79,13 +79,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
-  const addItem = async (newItem: Omit<CartItem, "quantity" | "itemId"> & { productId: number; color?: string; storage?: string }) => {
+  const addItem = useCallback(async (newItem: Omit<CartItem, "quantity" | "itemId"> & { productId: number; color?: string; storage?: string; quantity?: number }) => {
     if (!user) {
       setError("Please login to add items to cart")
       return
     }
 
-    // Validate required fields
     if (!newItem.productId || newItem.productId <= 0) {
       setError("Invalid product ID")
       return
@@ -95,7 +94,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError(null)
       
-      // Find the product variant ID based on product, color, and storage
       const variantId = await findProductVariantId(newItem.productId, newItem.color, newItem.storage)
       
       if (!variantId) {
@@ -105,11 +103,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       const addData: AddToCartData = {
         product_variant_id: variantId,
-        quantity: 1,
+        quantity: newItem.quantity ?? 1,
       }
       
       await cartService.addItem(addData)
-      await refreshCart() // Refresh cart to get updated data
+      await refreshCart()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add item to cart'
       setError(errorMessage)
@@ -117,25 +115,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, refreshCart])
 
-  const removeItem = async (itemId: number) => {
+  const removeItem = useCallback(async (itemId: number) => {
     if (!user) return
 
     try {
       setLoading(true)
       setError(null)
       await cartService.removeItem(itemId)
-      await refreshCart() // Refresh cart to get updated data
+      await refreshCart()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove item from cart')
       console.error('Error removing item from cart:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, refreshCart])
 
-  const updateQuantity = async (itemId: number, quantity: number) => {
+  const updateQuantity = useCallback(async (itemId: number, quantity: number) => {
     if (!user) return
     
     if (quantity <= 0) {
@@ -147,14 +145,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError(null)
       await cartService.updateItem({ item_id: itemId, quantity })
-      await refreshCart() // Refresh cart to get updated data
+      await refreshCart()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update item quantity')
       console.error('Error updating item quantity:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, refreshCart, removeItem])
 
   const clearCart = useCallback(async () => {
     if (!user) return

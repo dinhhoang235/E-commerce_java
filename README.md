@@ -20,9 +20,10 @@ Full-stack e-commerce platform — Spring Boot 4 + Next.js.
 |---|---|
 | Backend | Java 17, Spring Boot 4, Spring Security, Spring Data JPA, Flyway |
 | Database | MySQL 8, Redis (cache) |
+| Message Queue | RabbitMQ (async event processing) |
 | Payments | Stripe SDK |
 | Frontend | Next.js, Tailwind CSS, TypeScript |
-| Infra | Docker Compose (nginx, backend, frontend, MySQL, Redis) |
+| Infra | Docker Compose (nginx, backend, frontend, MySQL, Redis, RabbitMQ) |
 
 ## Architecture
 
@@ -41,12 +42,25 @@ modules/
   adminpanel/   → Analytics + Settings + Payment stats
 ```
 
+## Event-Driven Messaging
+
+```
+OrderCommandService ──→ EventPublisher ──→ RabbitMQ order.exchange
+                                             ├── order.created.queue        → LoggingEventHandler
+                                             └── order.status.changed.queue → LoggingEventHandler
+
+PaymentCommandService ──→ EventPublisher ──→ RabbitMQ payment.exchange
+                                              └── payment.succeeded.queue   → LoggingEventHandler
+```
+
+All domain events are published asynchronously via RabbitMQ Topic Exchanges, decoupling core business logic from side-effects (logging, notifications, analytics).
+
 ### Design Patterns Applied
 
 | Pattern | Implementation |
 |---|---|
 | **Strategy** | `ShippingCostStrategy` ← `StandardShippingStrategy`, `ExpressShippingStrategy`, `OvernightShippingStrategy` + `ShippingCostCalculator` context |
-| **Observer** | `OrderCreatedEvent` / `PaymentSucceededEvent` / `OrderStatusChangedEvent` published via `ApplicationEventPublisher` → `LoggingEventListener` |
+| **Observer (Async)** | `OrderCreatedEvent` / `PaymentSucceededEvent` / `OrderStatusChangedEvent` published via `EventPublisher` → RabbitMQ Topic Exchange → async consumers (`LoggingEventHandler`) |
 | **Template Method** | `BaseCrudService<T>` defines CRUD skeleton → `CategoryCrudService`, `ColorCrudService` override specifics |
 | **Command/Query Separation** | Split mutations / reads: `PaymentCommandService` + `PaymentQueryService`, `OrderCommandService` + `OrderQueryService`, `ProductCommandService` + `ProductService` |
 | **Auth/Account Separation** | `UserAuthService` (register/login/refresh/token) separate from `UserAccountService` (profile/address/password) — isolates security-sensitive domain |

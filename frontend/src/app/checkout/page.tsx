@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,59 +18,99 @@ import { userOrdersApi } from "@/lib/services/orders"
 
 export default function CheckoutPage() {
   const { items, total } = useCart()
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
-  const [step, setStep] = useState(1) // 1: Shipping, 2: Review, 3: Payment
+  const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [pendingOrder, setPendingOrder] = useState<any>(null)
-  const [timeLeft, setTimeLeft] = useState<number>(60) // 1 minute in seconds
+  const [timeLeft, setTimeLeft] = useState<number>(60)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const [shippingData, setShippingData] = useState({
-    firstName: user?.first_name || "",
-    lastName: user?.last_name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    address: user?.address?.address_line1 || "",
-    city: user?.address?.city || "",
-    state: user?.address?.state || "",
-    zipCode: user?.address?.zip_code || "",
-    country: user?.address?.country || "Vietnam",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "Vietnam",
   })
   
   const [shippingMethod, setShippingMethod] = useState("standard")
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Shipping costs
   const shippingCosts = {
     standard: 0,
     express: 5,
     overnight: 10,
   }
 
-  // Tax-inclusive pricing: displayed prices already include tax
   const subtotal = total
   const shippingCost = shippingCosts[shippingMethod as keyof typeof shippingCosts] || 0
-  const finalTotal = total + shippingCost // Prices are already tax-inclusive, now add shipping
+  const finalTotal = total + shippingCost
 
+  // Pre-fill shipping data when user loads
   useEffect(() => {
-    if (user !== undefined) {
+    if (user) {
+      setShippingData({
+        firstName: user.first_name || "",
+        lastName: user.last_name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        address: user.address?.address_line1 || "",
+        city: user.address?.city || "",
+        state: user.address?.state || "",
+        zipCode: user.address?.zip_code || "",
+        country: user.address?.country || "Vietnam",
+      })
+      setIsLoading(false)
+    } else if (!authLoading) {
       setIsLoading(false)
     }
-  }, [user])
+  }, [user, authLoading])
 
-  // Countdown timer effect for payment step
+  // Redirect to login if not authenticated
   useEffect(() => {
-    let timer: NodeJS.Timeout
-    
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  // Timer countdown - only depends on step and pendingOrder
+  const handleTimeoutCancel = useCallback(async () => {
+    if (pendingOrder?.id) {
+      try {
+        await userOrdersApi.cancelOrder(pendingOrder.id)
+      } catch (error) {
+        console.error('Error cancelling order on timeout:', error)
+      }
+    }
+    toast({
+      variant: "destructive",
+      title: "Payment Timeout",
+      description: "Payment time has expired. Your order has been cancelled.",
+    })
+    const params = new URLSearchParams()
+    if (pendingOrder?.id) params.set('orderId', pendingOrder.id)
+    if (finalTotal) params.set('total', finalTotal.toFixed(2))
+    router.push(`/payment-timeout?${params.toString()}`)
+  }, [pendingOrder, finalTotal, toast, router])
+
+  useEffect(() => {
     if (step === 3 && pendingOrder && timeLeft > 0) {
-      timer = setInterval(() => {
+      timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            // Time's up - call cancel API directly and redirect to payment timeout page
-            handleTimeoutCancel()
+            if (timerRef.current) {
+              clearInterval(timerRef.current)
+              timerRef.current = null
+            }
+            setTimeout(() => handleTimeoutCancel(), 0)
             return 0
           }
           return prev - 1
@@ -79,35 +119,12 @@ export default function CheckoutPage() {
     }
 
     return () => {
-      if (timer) {
-        clearInterval(timer)
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
       }
     }
-  }, [step, pendingOrder, timeLeft, toast, router, finalTotal])
-
-  // Handle timeout cancellation - call cancel API when countdown reaches zero
-  const handleTimeoutCancel = async () => {
-    try {
-      if (pendingOrder?.id) {
-        // Call cancel API directly
-        await userOrdersApi.cancelOrder(pendingOrder.id)
-        console.log(`Order ${pendingOrder.id} cancelled due to timeout`)
-      }
-    } catch (error) {
-      console.error('Error cancelling order on timeout:', error)
-    } finally {
-      // Always redirect to timeout page regardless of API success/failure
-      toast({
-        variant: "destructive",
-        title: "Payment Timeout",
-        description: "Payment time has expired. Your order has been cancelled.",
-      })
-      const params = new URLSearchParams()
-      if (pendingOrder?.id) params.set('orderId', pendingOrder.id)
-      if (finalTotal) params.set('total', finalTotal.toFixed(2))
-      router.push(`/payment-timeout?${params.toString()}`)
-    }
-  }
+  }, [step === 3, !!pendingOrder, handleTimeoutCancel])
 
   // Format time display
   const formatTime = (seconds: number) => {
@@ -228,12 +245,29 @@ export default function CheckoutPage() {
     })
   }
 
-  if (!user || items.length === 0 || isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-screen">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>Loading checkout...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-screen">
+        <div className="text-center">
+          <p className="text-slate-600 mb-4">Your cart is empty.</p>
+          <Button onClick={() => router.push("/products")} className="bg-blue-600 hover:bg-blue-700">
+            Continue Shopping
+          </Button>
         </div>
       </div>
     )

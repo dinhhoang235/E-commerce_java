@@ -1,19 +1,17 @@
 package com.hoang.backend.common.event;
 
-import lombok.Getter;
-import org.springframework.context.ApplicationEvent;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-public class PaymentSucceededEvent extends ApplicationEvent {
+import java.math.BigDecimal;
 
-    private final String orderId;
-    private final java.math.BigDecimal amount;
-    private final String paymentMethod;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PaymentSucceededEvent {
 
-    public PaymentSucceededEvent(Object source, String orderId, java.math.BigDecimal amount, String paymentMethod) {
-        super(source);
-        this.orderId = orderId;
-        this.amount = amount;
-        this.paymentMethod = paymentMethod;
-    }
+    private String orderId;
+    private BigDecimal amount;
+    private String paymentMethod;
 }

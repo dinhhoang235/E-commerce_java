@@ -6,6 +6,7 @@ import static com.hoang.backend.common.util.TextUtils.*;
 
 import com.hoang.backend.common.constants.OrderStatus;
 import com.hoang.backend.common.constants.PaymentStatus;
+import com.hoang.backend.common.event.EventPublisher;
 import com.hoang.backend.common.event.PaymentSucceededEvent;
 import com.hoang.backend.common.shipping.ShippingCostCalculator;
 import com.hoang.backend.modules.orders.dto.OrderCreateItemRequest;
@@ -35,7 +36,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,9 +52,9 @@ public class PaymentCommandService {
     private final OrderCommandService orderCommandService;
     private final StripeSessionService stripeSessionService;
     private final ShippingCostCalculator shippingCostCalculator;
-    private final ApplicationEventPublisher eventPublisher;
+    private final EventPublisher eventPublisher;
 
-    public PaymentSessionResponse createCheckoutSession(String authenticatedUsername, String orderId) {
+    public synchronized PaymentSessionResponse createCheckoutSession(String authenticatedUsername, String orderId) {
         AppUser user = requireUser(authenticatedUsername);
         Order order = requireOrder(orderId, user.getId());
 
@@ -164,6 +164,13 @@ public class PaymentCommandService {
         }
 
         Order order = requireOrder(orderId, user.getId());
+        BigDecimal expectedAmount = orderTotalWithShipping(order);
+        BigDecimal chargedAmount = session.getAmountTotal() != null
+                ? BigDecimal.valueOf(session.getAmountTotal()).movePointLeft(2)
+                : null;
+        if (chargedAmount != null && expectedAmount.compareTo(chargedAmount) != 0) {
+            throw new IllegalArgumentException("Payment amount mismatch. Expected: " + expectedAmount + ", Charged: " + chargedAmount);
+        }
         order.setStatus(OrderStatus.PROCESSING);
         order.setIsPaid(true);
         order.setCheckoutUrl(null);
@@ -178,13 +185,16 @@ public class PaymentCommandService {
         transaction.setStatus(PaymentStatus.SUCCESS);
         paymentTransactionRepository.save(transaction);
 
-        eventPublisher.publishEvent(new PaymentSucceededEvent(this, order.getId(), transaction.getAmount(), "stripe"));
+        eventPublisher.publish(new PaymentSucceededEvent(order.getId(), transaction.getAmount(), "stripe"));
 
         return of("success", true, "order_id", orderId, "message", "Order updated successfully after payment");
     }
 
     public Map<String, Object> processFullRefund(String authenticatedUsername, String orderId, String reason) {
         AppUser user = requireUser(authenticatedUsername);
+        if (!Boolean.TRUE.equals(user.getIsStaff())) {
+            throw new IllegalArgumentException("You do not have permission to process refunds.");
+        }
         Order order = requireOrder(orderId, user.getId());
 
         if (!Boolean.TRUE.equals(order.getIsPaid())) {
@@ -337,6 +347,7 @@ public class PaymentCommandService {
                 .filter(order -> !Boolean.TRUE.equals(order.getIsPaid()))
                 .filter(order -> order.getDate() != null && order.getDate().isBefore(cutoff))
                 .forEach(order -> {
+                    restoreOrderStock(order.getId());
                     order.setStatus(OrderStatus.CANCELLED);
                     order.setCheckoutUrl(null);
                     orderRepository.save(order);

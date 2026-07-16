@@ -160,6 +160,16 @@ export async function getAllProducts(categorySlug?: string) {
   }
 }
 
+export async function getProductById(id: string) {
+  try {
+    const response = await api.get(`/products/${id}/`)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching product:", error)
+    throw error
+  }
+}
+
 export async function searchProducts(query: string, limit?: number) {
   try {
     const params = new URLSearchParams()

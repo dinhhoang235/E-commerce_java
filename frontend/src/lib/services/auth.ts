@@ -165,3 +165,8 @@ export async function removeAvatar(): Promise<User> {
   const res = await api.patch<User>("/users/me/account/", { avatar: "" })
   return res.data
 }
+
+// Delete account
+export async function deleteAccount(): Promise<void> {
+  await api.delete("/users/me/account/")
+}

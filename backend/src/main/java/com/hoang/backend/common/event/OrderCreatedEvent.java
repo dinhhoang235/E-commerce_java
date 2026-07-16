@@ -1,19 +1,17 @@
 package com.hoang.backend.common.event;
 
-import lombok.Getter;
-import org.springframework.context.ApplicationEvent;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-public class OrderCreatedEvent extends ApplicationEvent {
+import java.math.BigDecimal;
 
-    private final String orderId;
-    private final String userId;
-    private final java.math.BigDecimal total;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OrderCreatedEvent {
 
-    public OrderCreatedEvent(Object source, String orderId, String userId, java.math.BigDecimal total) {
-        super(source);
-        this.orderId = orderId;
-        this.userId = userId;
-        this.total = total;
-    }
+    private String orderId;
+    private String userId;
+    private BigDecimal total;
 }

@@ -6,6 +6,7 @@ import static com.hoang.backend.common.util.TextUtils.*;
 
 import com.hoang.backend.common.constants.OrderStatus;
 import com.hoang.backend.common.constants.ShippingMethod;
+import com.hoang.backend.common.event.EventPublisher;
 import com.hoang.backend.common.event.OrderCreatedEvent;
 import com.hoang.backend.common.event.OrderStatusChangedEvent;
 import com.hoang.backend.modules.orders.dto.OrderCreateItemRequest;
@@ -30,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +43,7 @@ public class OrderCommandService {
     private static final Set<String> USER_CANCELABLE_STATUSES = Set.of(OrderStatus.PENDING, OrderStatus.PROCESSING);
     private static final Set<String> VALID_SHIPPING_METHODS = Set.of(ShippingMethod.STANDARD, ShippingMethod.EXPRESS, ShippingMethod.OVERNIGHT);
 
-    private final ApplicationEventPublisher eventPublisher;
+    private final EventPublisher eventPublisher;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductVariantRepository productVariantRepository;
@@ -65,7 +65,7 @@ public class OrderCommandService {
             clearCart(user.getId());
         }
 
-        eventPublisher.publishEvent(new OrderCreatedEvent(this, order.getId(), String.valueOf(user.getId()), order.getTotal()));
+        eventPublisher.publish(new OrderCreatedEvent(order.getId(), String.valueOf(user.getId()), order.getTotal()));
 
         return orderQueryService.toOrderResponse(order);
     }
@@ -82,7 +82,7 @@ public class OrderCommandService {
             clearCart(user.getId());
         }
 
-        eventPublisher.publishEvent(new OrderCreatedEvent(this, order.getId(), String.valueOf(user.getId()), order.getTotal()));
+        eventPublisher.publish(new OrderCreatedEvent(order.getId(), String.valueOf(user.getId()), order.getTotal()));
 
         return orderQueryService.toOrderResponse(order);
     }
@@ -96,8 +96,8 @@ public class OrderCommandService {
         if (!OrderStatus.CANCELLED.equals(normalizedStatus)) {
             throw new IllegalArgumentException("You can only cancel an order.");
         }
-        if (!OrderStatus.PENDING.equals(order.getStatus())) {
-            throw new IllegalArgumentException("You can only cancel pending orders.");
+        if (!USER_CANCELABLE_STATUSES.contains(order.getStatus())) {
+            throw new IllegalArgumentException("You can only cancel pending or processing orders.");
         }
 
         applyStatusTransition(order, normalizedStatus);
@@ -147,7 +147,7 @@ public class OrderCommandService {
 
         List<OrderItem> orderItems = new ArrayList<>();
         for (ResolvedItem item : items) {
-            ProductVariant variant = requireVariant(item.productVariant().getId());
+            ProductVariant variant = requireVariantWithLock(item.productVariant().getId());
             ensureStock(variant, item.quantity());
 
             variant.setStock(variant.getStock() - item.quantity());
@@ -170,7 +170,11 @@ public class OrderCommandService {
     private ResolvedOrderItems resolveRequestedItems(AppUser user, List<OrderCreateItemRequest> requestedItems, boolean forceUseCartIfEmpty) {
         List<OrderCreateItemRequest> items = requestedItems == null ? List.of() : requestedItems;
 
-        if (items.isEmpty() || forceUseCartIfEmpty) {
+        if (!items.isEmpty()) {
+            return new ResolvedOrderItems(resolveItems(items), false);
+        }
+
+        if (forceUseCartIfEmpty) {
             List<OrderCreateItemRequest> fromCart = loadItemsFromCart(user.getId());
             if (fromCart.isEmpty()) {
                 throw new IllegalArgumentException("No items in cart");
@@ -178,7 +182,7 @@ public class OrderCommandService {
             return new ResolvedOrderItems(resolveItems(fromCart), true);
         }
 
-        return new ResolvedOrderItems(resolveItems(items), false);
+        throw new IllegalArgumentException("No items in cart");
     }
 
     private List<OrderCreateItemRequest> loadItemsFromCart(Long userId) {
@@ -269,8 +273,7 @@ public class OrderCommandService {
             return;
         }
 
-        if (OrderStatus.CANCELLED.equals(targetStatus) && !USER_CANCELABLE_STATUSES.contains(previousStatus) && !OrderStatus.SHIPPED.equals(previousStatus)
-                && !OrderStatus.COMPLETED.equals(previousStatus) && !OrderStatus.REFUNDED.equals(previousStatus)) {
+        if (OrderStatus.CANCELLED.equals(targetStatus) && !USER_CANCELABLE_STATUSES.contains(previousStatus) && !OrderStatus.SHIPPED.equals(previousStatus)) {
             throw new IllegalArgumentException("Cannot cancel order with status: " + previousStatus);
         }
 
@@ -300,11 +303,16 @@ public class OrderCommandService {
         order.setStatus(targetStatus);
         orderRepository.save(order);
 
-        eventPublisher.publishEvent(new OrderStatusChangedEvent(this, order.getId(), previousStatus, targetStatus));
+        eventPublisher.publish(new OrderStatusChangedEvent(order.getId(), previousStatus, targetStatus));
     }
 
     private ProductVariant requireVariant(Long variantId) {
         return productVariantRepository.findById(variantId)
+                .orElseThrow(() -> new IllegalArgumentException("Product variant with ID " + variantId + " not found"));
+    }
+
+    private ProductVariant requireVariantWithLock(Long variantId) {
+        return productVariantRepository.findByIdWithLock(variantId)
                 .orElseThrow(() -> new IllegalArgumentException("Product variant with ID " + variantId + " not found"));
     }
 

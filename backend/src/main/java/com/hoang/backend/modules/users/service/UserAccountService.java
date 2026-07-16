@@ -331,4 +331,11 @@ public class UserAccountService {
     private boolean isBlankValue(Object value) {
         return value == null || value.toString().isBlank();
     }
+
+    public void deleteAccount(String username) {
+        AppUser user = requireUser(username);
+        addressRepository.deleteByUserId(user.getId());
+        accountRepository.findByUserId(user.getId()).ifPresent(accountRepository::delete);
+        userRepository.delete(user);
+    }
 }
