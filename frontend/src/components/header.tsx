@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, ShoppingCart, Menu, Heart, LogOut, Settings, Package } from "lucide-react"
+import { Search, ShoppingCart, Menu, Heart, LogOut, Settings, Package, X } from "lucide-react"
 import { useCart } from "@/components/cart-provider"
 import { useWishlist } from "@/components/wishlist-provider"
 import { useAuth } from "@/components/auth-provider"
@@ -30,6 +30,7 @@ export function Header() {
   const [mobileSearchQuery, setMobileSearchQuery] = useState("")
   const [isMobileSearchDropdownOpen, setIsMobileSearchDropdownOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
   const { items } = useCart()
   const { total: wishlistCount } = useWishlist()
   const { user, logout } = useAuth()
@@ -43,6 +44,15 @@ export function Header() {
     const last = lastName?.charAt(0) || ''
     return `${first}${last}`.toUpperCase() || 'U'
   }
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   // Handle clicks outside search dropdown
   useEffect(() => {
@@ -100,47 +110,55 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      isScrolled 
+        ? 'bg-white/80 backdrop-blur-xl shadow-lg shadow-black/5 border-b border-white/20' 
+        : 'bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60'
+    }`}>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 mr-8">
-            <div className="bg-slate-900 text-white p-2 rounded-lg">
-              <span className="font-bold text-lg">A</span>
+          <Link href="/" className="flex items-center space-x-3 mr-8 group">
+            <div className="relative">
+              <div className="bg-gradient-to-br from-slate-900 to-slate-700 text-white p-2.5 rounded-xl group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-blue-500/25">
+                <span className="font-bold text-lg">A</span>
+              </div>
+              <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur-sm"></div>
             </div>
-            <span className="font-bold text-xl">Apple Store</span>
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
+              Apple Store
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/products?category=iphone"
-              className="text-sm font-medium hover:text-blue-600 transition-colors"
-            >
-              iPhone
-            </Link>
-            <Link href="/products?category=ipad" className="text-sm font-medium hover:text-blue-600 transition-colors">
-              iPad
-            </Link>
-            <Link
-              href="/products?category=macbook"
-              className="text-sm font-medium hover:text-blue-600 transition-colors"
-            >
-              MacBook
-            </Link>
-            <Link href="/products" className="text-sm font-medium hover:text-blue-600 transition-colors">
-              All Products
-            </Link>
+          <nav className="hidden md:flex items-center space-x-1">
+            {[
+              { href: "/products?category=iphone", label: "iPhone" },
+              { href: "/products?category=ipad", label: "iPad" },
+              { href: "/products?category=macbook", label: "MacBook" },
+              { href: "/products", label: "All Products" },
+            ].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="relative px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors group"
+              >
+                {link.label}
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 group-hover:w-3/4 transition-all duration-300 rounded-full"></span>
+              </Link>
+            ))}
           </nav>
 
           {/* Desktop Search Bar */}
           <div className="hidden lg:flex items-center space-x-4 flex-1 max-w-md mx-8">
             <div ref={searchRef} className="relative w-full">
               <form onSubmit={handleSearchSubmit} className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                </div>
                 <Input
                   placeholder="Search products..."
-                  className="pl-10 pr-4"
+                  className="pl-10 pr-4 h-10 bg-slate-50/80 border-slate-200/60 rounded-xl focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                   value={searchQuery}
                   onChange={(e) => handleSearchInputChange(e.target.value)}
                   onFocus={() => {
@@ -160,23 +178,27 @@ export function Header() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1">
             {/* Mobile Search */}
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="lg:hidden h-10 w-10 rounded-xl hover:bg-slate-100 transition-colors"
               onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-5 h-5 text-slate-600" />
             </Button>
 
             {/* Wishlist */}
             <Link href="/wishlist">
-              <Button variant="ghost" size="icon" className="hidden sm:flex relative">
-                <Heart className="w-5 h-5" />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="hidden sm:flex relative h-10 w-10 rounded-xl hover:bg-pink-50 transition-colors group"
+              >
+                <Heart className="w-5 h-5 text-slate-600 group-hover:text-pink-500 transition-colors" />
                 {wishlistCount > 0 && (
-                  <Badge className="absolute -right-2 -top-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500 hover:bg-red-600">
+                  <Badge className="absolute -right-1 -top-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-r from-pink-500 to-rose-500 border-2 border-white shadow-sm animate-bounce-subtle">
                     {wishlistCount}
                   </Badge>
                 )}
@@ -187,49 +209,64 @@ export function Header() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="hidden sm:flex items-center space-x-2 px-2">
-                    <Avatar className="h-8 w-8">
+                  <Button 
+                    variant="ghost" 
+                    className="hidden sm:flex items-center space-x-2 px-3 h-10 rounded-xl hover:bg-slate-100 transition-colors"
+                  >
+                    <Avatar className="h-8 w-8 ring-2 ring-slate-100 group-hover:ring-blue-200 transition-all">
                       <AvatarImage src={user.avatar || ""} alt={`${user.first_name} ${user.last_name}`} />
-                      <AvatarFallback className="text-xs bg-blue-100 text-blue-600">
+                      <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
                         {getInitials(user.first_name, user.last_name)}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{user.first_name}</span>
+                    <span className="text-sm font-medium text-slate-700">{user.first_name}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">
+                <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl border-0 shadow-xl shadow-black/10 bg-white/95 backdrop-blur-xl">
+                  <div className="px-3 py-3 mb-1 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl">
+                    <p className="text-sm font-semibold text-slate-900">
                       {user.first_name} {user.last_name}
                     </p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{user.email}</p>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/account">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Account Settings
+                  <DropdownMenuSeparator className="my-1" />
+                  <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <Link href="/account" className="flex items-center">
+                      <Settings className="mr-3 h-4 w-4 text-slate-500" />
+                      <span className="font-medium">Account Settings</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/orders">
-                      <Package className="mr-2 h-4 w-4" />
-                      Order History
+                  <DropdownMenuItem asChild className="rounded-xl px-3 py-2.5 cursor-pointer hover:bg-slate-100 transition-colors">
+                    <Link href="/orders" className="flex items-center">
+                      <Package className="mr-3 h-4 w-4 text-slate-500" />
+                      <span className="font-medium">Order History</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
+                  <DropdownMenuSeparator className="my-1" />
+                  <DropdownMenuItem 
+                    onClick={logout} 
+                    className="rounded-xl px-3 py-2.5 cursor-pointer hover:bg-red-50 text-red-600 transition-colors"
+                  >
+                    <LogOut className="mr-3 h-4 w-4" />
+                    <span className="font-medium">Sign Out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <div className="hidden sm:flex items-center space-x-2">
-                <Button variant="ghost" size="sm" asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  asChild 
+                  className="h-9 px-4 rounded-xl font-medium hover:bg-slate-100 transition-colors"
+                >
                   <Link href="/login">Sign In</Link>
                 </Button>
-                <Button size="sm" asChild>
+                <Button 
+                  size="sm" 
+                  asChild 
+                  className="h-9 px-4 rounded-xl font-medium bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+                >
                   <Link href="/register">Sign Up</Link>
                 </Button>
               </div>
@@ -238,53 +275,93 @@ export function Header() {
             {/* Cart */}
             <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <ShoppingCart className="w-5 h-5" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="relative h-10 w-10 rounded-xl hover:bg-blue-50 transition-colors group"
+                >
+                  <ShoppingCart className="w-5 h-5 text-slate-600 group-hover:text-blue-500 transition-colors" />
                   {itemCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-blue-600">
+                    <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-gradient-to-r from-blue-500 to-purple-500 border-2 border-white shadow-sm animate-bounce-subtle">
                       {itemCount}
                     </Badge>
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent>
-                <SheetHeader>
-                  <SheetTitle>Shopping Cart ({itemCount})</SheetTitle>
-                </SheetHeader>
-                <div className="mt-6">
-                  {items.length === 0 ? (
-                    <p className="text-slate-500 text-center py-8">Your cart is empty</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {items.map((item) => (
-                        <div key={item.itemId} className="flex items-center space-x-4 p-4 border rounded-lg">
-                          <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden">
-                            <img 
-                              src={item.image || "/placeholder.jpg"} 
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = "/placeholder.jpg";
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-medium">{item.name}</h4>
-                            <div className="text-sm text-slate-500 space-y-1">
-                              <p>Qty: {item.quantity}</p>
-                              {item.color && <p>Color: {item.color}</p>}
-                              {item.storage && <p>Storage: {item.storage}</p>}
-                            </div>
-                            <p className="font-bold">${typeof item.price === 'number' ? (item.price * item.quantity).toFixed(2) : '0.00'}</p>
-                          </div>
+              <SheetContent className="w-full sm:max-w-md p-0">
+                <div className="flex flex-col h-full">
+                  <SheetHeader className="px-6 py-4 border-b border-slate-100">
+                    <SheetTitle className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                      Shopping Cart ({itemCount})
+                    </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto px-6 py-4">
+                    {items.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                          <ShoppingCart className="w-8 h-8 text-slate-400" />
                         </div>
-                      ))}
-                      <div className="space-y-2 mt-6">
-                        <Button className="w-full bg-blue-600 hover:bg-blue-700" asChild>
-                          <Link href="/checkout" onClick={() => setIsCartOpen(false)}>Checkout</Link>
+                        <p className="text-slate-500 font-medium">Your cart is empty</p>
+                        <p className="text-slate-400 text-sm mt-1">Add some items to get started</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {items.map((item) => (
+                          <div 
+                            key={item.itemId} 
+                            className="flex items-center space-x-4 p-4 bg-slate-50/80 rounded-2xl hover:bg-slate-100/80 transition-colors"
+                          >
+                            <div className="w-16 h-16 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+                              <img 
+                                src={item.image || "/placeholder.jpg"} 
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/placeholder.jpg";
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-slate-900 truncate">{item.name}</h4>
+                              <div className="text-sm text-slate-500 space-y-0.5 mt-1">
+                                <p>Qty: {item.quantity}</p>
+                                {item.color && <p>Color: {item.color}</p>}
+                                {item.storage && <p>Storage: {item.storage}</p>}
+                              </div>
+                              <p className="font-bold text-slate-900 mt-1">
+                                ${typeof item.price === 'number' ? (item.price * item.quantity).toFixed(2) : '0.00'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {items.length > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-100 bg-white/80 backdrop-blur-sm">
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Subtotal</span>
+                          <span className="font-semibold">
+                            ${items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <Button 
+                          className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 font-semibold shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300" 
+                          asChild
+                        >
+                          <Link href="/checkout" onClick={() => setIsCartOpen(false)}>
+                            Checkout
+                          </Link>
                         </Button>
-                        <Button variant="outline" className="w-full bg-transparent" asChild>
-                          <Link href="/cart" onClick={() => setIsCartOpen(false)}>View Cart</Link>
+                        <Button 
+                          variant="outline" 
+                          className="w-full h-12 rounded-xl border-slate-200 hover:bg-slate-50 font-medium transition-colors" 
+                          asChild
+                        >
+                          <Link href="/cart" onClick={() => setIsCartOpen(false)}>
+                            View Cart
+                          </Link>
                         </Button>
                       </div>
                     </div>
@@ -296,35 +373,49 @@ export function Header() {
             {/* Mobile Menu */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="w-5 h-5" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="md:hidden h-10 w-10 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <Menu className="w-5 h-5 text-slate-600" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left">
-                <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
+              <SheetContent side="left" className="w-80 p-0">
+                <SheetHeader className="px-6 py-4 border-b border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                      Menu
+                    </SheetTitle>
+                  </div>
                 </SheetHeader>
-                <nav className="flex flex-col space-y-4 mt-6">
-                  <Link href="/products?category=iphone" className="text-lg font-medium">
-                    iPhone
-                  </Link>
-                  <Link href="/products?category=ipad" className="text-lg font-medium">
-                    iPad
-                  </Link>
-                  <Link href="/products?category=macbook" className="text-lg font-medium">
-                    MacBook
-                  </Link>
-                  <Link href="/products" className="text-lg font-medium">
-                    All Products
-                  </Link>
+                <nav className="flex flex-col p-6 space-y-2">
+                  {[
+                    { href: "/products?category=iphone", label: "iPhone", icon: "📱" },
+                    { href: "/products?category=ipad", label: "iPad", icon: "📱" },
+                    { href: "/products?category=macbook", label: "MacBook", icon: "💻" },
+                    { href: "/products", label: "All Products", icon: "🛍️" },
+                  ].map((link) => (
+                    <Link 
+                      key={link.href} 
+                      href={link.href} 
+                      className="flex items-center space-x-3 px-4 py-3 text-slate-700 hover:bg-slate-100 rounded-xl transition-colors group"
+                    >
+                      <span className="text-lg">{link.icon}</span>
+                      <span className="font-medium group-hover:text-blue-600 transition-colors">{link.label}</span>
+                    </Link>
+                  ))}
                   {user && (
                     <>
-                      <hr className="my-4" />
-                      <Link href="/wishlist" className="text-lg font-medium flex items-center">
-                        <Heart className="w-5 h-5 mr-2" />
-                        Wishlist
+                      <div className="border-t border-slate-100 my-2"></div>
+                      <Link 
+                        href="/wishlist" 
+                        className="flex items-center space-x-3 px-4 py-3 text-slate-700 hover:bg-pink-50 rounded-xl transition-colors group"
+                      >
+                        <Heart className="w-5 h-5 text-slate-500 group-hover:text-pink-500 transition-colors" />
+                        <span className="font-medium group-hover:text-pink-600 transition-colors">Wishlist</span>
                         {wishlistCount > 0 && (
-                          <Badge className="ml-2 bg-red-500 hover:bg-red-600">
+                          <Badge className="ml-auto bg-pink-100 text-pink-600 hover:bg-pink-200">
                             {wishlistCount}
                           </Badge>
                         )}
@@ -333,12 +424,18 @@ export function Header() {
                   )}
                   {!user && (
                     <>
-                      <hr className="my-4" />
-                      <Link href="/login" className="text-lg font-medium">
-                        Sign In
+                      <div className="border-t border-slate-100 my-2"></div>
+                      <Link 
+                        href="/login" 
+                        className="flex items-center justify-center px-4 py-3 text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+                      >
+                        <span className="font-medium">Sign In</span>
                       </Link>
-                      <Link href="/register" className="text-lg font-medium">
-                        Sign Up
+                      <Link 
+                        href="/register" 
+                        className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium shadow-lg shadow-blue-500/25"
+                      >
+                        <span>Sign Up</span>
                       </Link>
                     </>
                   )}
@@ -350,13 +447,13 @@ export function Header() {
 
         {/* Mobile Search Bar */}
         {isMobileSearchOpen && (
-          <div className="lg:hidden border-t bg-white p-4">
+          <div className="lg:hidden border-t border-slate-100 bg-white/95 backdrop-blur-xl p-4 animate-fade-in-down">
             <div ref={mobileSearchRef} className="relative">
               <form onSubmit={handleMobileSearchSubmit} className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <Input
                   placeholder="Search products..."
-                  className="pl-10 pr-4"
+                  className="pl-10 pr-4 h-11 bg-slate-50 rounded-xl"
                   value={mobileSearchQuery}
                   onChange={(e) => handleMobileSearchInputChange(e.target.value)}
                   autoFocus

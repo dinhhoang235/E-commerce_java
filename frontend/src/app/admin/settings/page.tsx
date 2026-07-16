@@ -9,9 +9,31 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Store, Bell, Shield, Palette, Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Store, Bell, Shield, Palette, Loader2, CreditCard, Truck } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSettings } from "@/hooks/use-settings"
+
+function SettingsSkeleton() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <Skeleton className="h-8 w-32 mb-2" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+
+      <div className="flex gap-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-28 rounded-xl" />
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        <Skeleton className="h-64 w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
 
 export default function AdminSettingsPage() {
   const { toast } = useToast()
@@ -35,29 +57,19 @@ export default function AdminSettingsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-slate-600">Manage your store configuration and preferences</p>
-        </div>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2">Loading settings...</span>
-        </div>
-      </div>
-    )
+    return <SettingsSkeleton />
   }
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-slate-600">Manage your store configuration and preferences</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Settings</h1>
+        <p className="text-slate-500 text-sm sm:text-base">Manage your store configuration and preferences</p>
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="flex overflow-x-auto scrollbar-hidden gap-2 w-full">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
@@ -67,10 +79,12 @@ export default function AdminSettingsPage() {
         </TabsList>
 
         <TabsContent value="general">
-          <Card>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Store className="mr-2 h-5 w-5" />
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg mr-3">
+                  <Store className="h-5 w-5 text-white" />
+                </div>
                 Store Information
               </CardTitle>
             </CardHeader>
@@ -150,9 +164,10 @@ export default function AdminSettingsPage() {
                 </Select>
               </div>
 
-              <Button 
+              <Button
                 onClick={() => onSave('general')}
                 disabled={saving === 'general'}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 {saving === 'general' ? (
                   <>
@@ -168,10 +183,12 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="notifications">
-          <Card>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Bell className="mr-2 h-5 w-5" />
+                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg mr-3">
+                  <Bell className="h-5 w-5 text-white" />
+                </div>
                 Notification Preferences
               </CardTitle>
             </CardHeader>
@@ -213,9 +230,10 @@ export default function AdminSettingsPage() {
                 />
               </div>
 
-              <Button 
+              <Button
                 onClick={() => onSave('notifications')}
                 disabled={saving === 'notifications'}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 {saving === 'notifications' ? (
                   <>
@@ -231,10 +249,12 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="security">
-          <Card>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Shield className="mr-2 h-5 w-5" />
+                <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg mr-3">
+                  <Shield className="h-5 w-5 text-white" />
+                </div>
                 Security Settings
               </CardTitle>
             </CardHeader>
@@ -276,9 +296,10 @@ export default function AdminSettingsPage() {
                 />
               </div>
 
-              <Button 
+              <Button
                 onClick={() => onSave('security')}
                 disabled={saving === 'security'}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 {saving === 'security' ? (
                   <>
@@ -294,37 +315,67 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         <TabsContent value="payments">
-          <Card>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardHeader>
-              <CardTitle>Payment Settings</CardTitle>
+              <CardTitle className="flex items-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg mr-3">
+                  <CreditCard className="h-5 w-5 text-white" />
+                </div>
+                Payment Settings
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-600">Payment gateway configuration would go here.</p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="w-8 h-8 text-slate-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Payment Gateway Coming Soon</h3>
+                <p className="text-slate-500 max-w-md mx-auto">Payment gateway configuration will be available here. Connect your preferred payment providers to start accepting payments.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="shipping">
-          <Card>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardHeader>
-              <CardTitle>Shipping Settings</CardTitle>
+              <CardTitle className="flex items-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg mr-3">
+                  <Truck className="h-5 w-5 text-white" />
+                </div>
+                Shipping Settings
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-600">Shipping options and rates configuration would go here.</p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Truck className="w-8 h-8 text-slate-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Shipping Configuration Coming Soon</h3>
+                <p className="text-slate-500 max-w-md mx-auto">Shipping options and rates configuration will be available here. Set up shipping zones, rates, and delivery methods for your store.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="appearance">
-          <Card>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Palette className="mr-2 h-5 w-5" />
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg mr-3">
+                  <Palette className="h-5 w-5 text-white" />
+                </div>
                 Appearance Settings
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-600">Theme and branding customization would go here.</p>
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Palette className="w-8 h-8 text-slate-300" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Theme Customization Coming Soon</h3>
+                <p className="text-slate-500 max-w-md mx-auto">Theme and branding customization will be available here. Personalize your store's look and feel with custom colors, fonts, and layouts.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

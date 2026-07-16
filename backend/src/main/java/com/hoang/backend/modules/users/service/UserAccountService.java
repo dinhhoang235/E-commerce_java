@@ -16,6 +16,7 @@ import com.hoang.backend.modules.users.entity.AppUser;
 import com.hoang.backend.modules.users.repository.AccountRepository;
 import com.hoang.backend.modules.users.repository.AddressRepository;
 import com.hoang.backend.modules.users.repository.AppUserRepository;
+import com.hoang.backend.modules.orders.repository.OrderRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,6 +48,7 @@ public class UserAccountService {
     private final TokenService tokenService;
     private final ObjectMapper objectMapper;
     private final MinioService minioService;
+    private final OrderRepository orderRepository;
 
     @Transactional(readOnly = true)
     public AccountResponse getCurrentAccount(String username) {
@@ -262,8 +264,8 @@ public class UserAccountService {
                 user.getEmail(),
                 account == null ? "" : safe(account.getPhone()),
                 location,
-                0,
-                0.0,
+                (int) orderRepository.countByUserId(user.getId()),
+                orderRepository.sumTotalActiveByUserId(user.getId()).doubleValue(),
                 joinDate,
                 resolveStatus(user)
         );

@@ -107,6 +107,7 @@ public class PaymentCommandService {
                         existingPendingOrder.getId()
                 );
             }
+            return createCheckoutSession(authenticatedUsername, existingPendingOrder.getId());
         }
 
         List<OrderCreateItemRequest> orderItems = resolveOrderItemsFromCartPayload(request.cart_items());

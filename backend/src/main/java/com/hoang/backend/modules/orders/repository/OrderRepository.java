@@ -21,6 +21,8 @@ public interface OrderRepository extends JpaRepository<Order, String> {
 
     long countByStatus(String status);
 
+    long countByUserId(Long userId);
+
     long countByUserIdAndStatus(Long userId, String status);
 
     long countByDateGreaterThanEqual(LocalDateTime fromDate);
@@ -35,4 +37,18 @@ public interface OrderRepository extends JpaRepository<Order, String> {
 
     @Query("select coalesce(sum(o.total), 0) from Order o where o.date >= :fromDate")
     BigDecimal sumTotalFromDate(@Param("fromDate") LocalDateTime fromDate);
+
+    @Query("select coalesce(sum(o.total), 0) from Order o where o.status not in ('cancelled', 'refunded')")
+    BigDecimal sumTotalActive();
+
+    @Query("select coalesce(sum(o.total), 0) from Order o where o.status not in ('cancelled', 'refunded') and o.user.id = :userId")
+    BigDecimal sumTotalActiveByUserId(@Param("userId") Long userId);
+
+    @Query("select coalesce(sum(o.total), 0) from Order o where o.status not in ('cancelled', 'refunded') and o.date >= :fromDate")
+    BigDecimal sumTotalActiveFromDate(@Param("fromDate") LocalDateTime fromDate);
+
+    @Query("select p.name, coalesce(sum(oi.quantity), 0), coalesce(sum(oi.price * oi.quantity), 0) " +
+            "from OrderItem oi join oi.productVariant pv join pv.product p " +
+            "group by p.name order by sum(oi.price * oi.quantity) desc")
+    List<Object[]> findTopProducts();
 }

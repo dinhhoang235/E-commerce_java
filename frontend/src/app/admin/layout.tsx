@@ -2,12 +2,13 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,40 +47,37 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { adminUser, adminLogout, isLoading } = useAdmin()
   const router = useRouter()
   const pathname = usePathname()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
-    // Only redirect if we're not loading and not on the login page
     if (!isLoading && !adminUser && pathname !== "/admin/login") {
-      console.log("Redirecting to admin login - no admin user found")
       router.push("/admin/login")
     }
   }, [adminUser, pathname, router, isLoading])
 
-  // Show loading spinner while checking authentication
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-slate-600">Loading...</p>
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-3 text-slate-500 text-sm font-medium">Loading...</p>
         </div>
       </div>
     )
   }
 
-  // If no admin user and not on login page, show nothing (redirect will happen)
   if (!adminUser && pathname !== "/admin/login") {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-slate-600">Redirecting to login...</p>
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-3 text-slate-500 text-sm font-medium">Redirecting to login...</p>
         </div>
       </div>
     )
   }
 
-  // If on login page, show the login page
   if (pathname === "/admin/login") {
     return <>{children}</>
   }
@@ -91,113 +89,159 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 border-r">
           <div className="flex h-16 shrink-0 items-center">
             <div className="flex items-center space-x-2">
-              <div className="bg-slate-900 text-white p-2 rounded-lg">
+              <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white p-2 rounded-xl shadow-lg">
                 <span className="font-bold text-lg">A</span>
               </div>
-              <span className="font-bold text-xl">Admin Panel</span>
+              <span className="font-bold text-xl text-slate-900">Admin Panel</span>
             </div>
           </div>
           <nav className="flex flex-1 flex-col">
-            <ul role="list" className="flex flex-1 flex-col gap-y-7">
-              <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {navigation.map((item) => {
-                    const isActive = pathname === item.href
-                    return (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold ${
-                            isActive
-                              ? "bg-blue-50 text-blue-600"
-                              : "text-slate-700 hover:text-blue-600 hover:bg-slate-50"
-                          }`}
-                        >
-                          <item.icon className="h-6 w-6 shrink-0" />
-                          {item.name}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              </li>
+            <ul role="list" className="flex flex-1 flex-col gap-y-1">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href || (item.href !== "/admin" && pathname?.startsWith(item.href))
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className={`group flex gap-x-3 rounded-xl p-2.5 text-sm leading-6 font-semibold transition-all ${
+                        isActive
+                          ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 shadow-sm"
+                          : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <item.icon className={`h-5 w-5 shrink-0 ${isActive ? "text-blue-600" : "text-slate-400 group-hover:text-blue-600"}`} />
+                      {item.name}
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           </nav>
         </div>
       </div>
 
       {/* Mobile Header */}
-      <div className="sticky top-0 z-40 flex items-center gap-x-6 bg-white px-4 py-4 shadow-sm sm:px-6 lg:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-72">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="bg-slate-900 text-white p-2 rounded-lg">
-                <span className="font-bold text-lg">A</span>
+      <div className="sticky top-0 z-40 flex items-center justify-between bg-white/80 backdrop-blur-xl px-4 py-3 shadow-sm lg:hidden">
+        <div className="flex items-center gap-3">
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <div className="p-6">
+                <div className="flex items-center space-x-2 mb-6">
+                  <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white p-2 rounded-xl shadow-lg">
+                    <span className="font-bold text-lg">A</span>
+                  </div>
+                  <span className="font-bold text-xl text-slate-900">Admin Panel</span>
+                </div>
+                <nav className="space-y-1">
+                  {navigation.map((item) => {
+                    const isActive = pathname === item.href || (item.href !== "/admin" && pathname?.startsWith(item.href))
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center gap-x-3 rounded-xl p-2.5 text-sm font-semibold transition-all ${
+                          isActive 
+                            ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600" 
+                            : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <item.icon className={`h-5 w-5 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
+                        {item.name}
+                      </Link>
+                    )
+                  })}
+                </nav>
               </div>
-              <span className="font-bold text-xl">Admin Panel</span>
+            </SheetContent>
+          </Sheet>
+          <div className="flex items-center space-x-2">
+            <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white p-1.5 rounded-lg shadow-md">
+              <span className="font-bold text-sm">A</span>
             </div>
-            <nav className="space-y-2">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold ${
-                      isActive ? "bg-blue-50 text-blue-600" : "text-slate-700 hover:text-blue-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.name}
-                  </Link>
-                )
-              })}
-            </nav>
-          </SheetContent>
-        </Sheet>
-        <div className="flex-1 text-sm font-semibold leading-6 text-slate-900">Admin Dashboard</div>
+            <span className="font-bold text-base text-slate-900">Admin</span>
+          </div>
+        </div>
+        
+        {/* Mobile Header Right */}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl">
+            <Bell className="h-5 w-5 text-slate-600" />
+            <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-2 border-white">
+              3
+            </Badge>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl">
+                <User className="h-5 w-5 text-slate-600" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl">
+              <div className="px-3 py-2">
+                <p className="text-sm font-semibold text-slate-900">{adminUser?.name}</p>
+                <p className="text-xs text-slate-500">{adminUser?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="rounded-lg">
+                <Link href="/admin/settings">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={adminLogout} className="rounded-lg text-red-600 focus:text-red-600">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="lg:pl-72">
-        {/* Top Header */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        {/* Desktop Top Header */}
+        <div className="hidden lg:flex sticky top-0 z-40 h-16 shrink-0 items-center gap-x-4 border-b border-slate-100 bg-white/80 backdrop-blur-xl px-6 lg:px-8">
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
-              {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-xl hover:bg-slate-50">
+                <Bell className="h-5 w-5 text-slate-500" />
+                <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[10px] bg-red-500 text-white border-2 border-white">
                   3
                 </Badge>
               </Button>
 
-              {/* Profile dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-x-2">
-                    <User className="h-5 w-5" />
-                    <span className="hidden lg:block">{adminUser?.name}</span>
+                  <Button variant="ghost" className="flex items-center gap-x-2 rounded-xl px-3 py-2 h-auto hover:bg-slate-50">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700">{adminUser?.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">{adminUser?.name}</p>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-semibold text-slate-900">{adminUser?.name}</p>
                     <p className="text-xs text-slate-500">{adminUser?.email}</p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
+                  <DropdownMenuItem asChild className="rounded-lg">
+                    <Link href="/admin/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={adminLogout}>
+                  <DropdownMenuItem onClick={adminLogout} className="rounded-lg text-red-600 focus:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign Out
                   </DropdownMenuItem>
@@ -208,7 +252,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Page Content */}
-        <main className="py-10">
+        <main className="py-4 sm:py-6 lg:py-8">
           <div className="px-4 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { Plus, Search, Edit, Trash2, Eye, RefreshCw, Star, Package, Palette, Settings } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { 
   getAllProducts, 
   createProduct, 
@@ -482,57 +483,61 @@ export default function AdminProductsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Error Message */}
       {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <div className="text-red-600 font-medium">{error}</div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setError(null)}
-                className="ml-auto"
-              >
-                Dismiss
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{error}</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+            Dismiss
+          </Button>
+        </div>
       )}
 
       {/* Loading State */}
       {loading && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center py-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-slate-600">Loading products...</p>
+        <div className="space-y-6">
+          <div>
+            <Skeleton className="h-8 w-40 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-3">
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-6 w-20 rounded-full" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* Main Content - Only show when not loading */}
+      {/* Main Content */}
       {!loading && (
         <>
           {/* Header */}
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-              <p className="text-slate-600">Manage your product catalog and variants</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Products</h1>
+              <p className="text-slate-500 text-sm sm:text-base">Manage your product catalog and variants</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button 
                 variant="outline" 
                 onClick={reloadProducts}
                 disabled={isRefreshing}
-                className="flex items-center gap-2"
+                className="rounded-xl h-10"
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
               
@@ -599,10 +604,10 @@ export default function AdminProductsPage() {
                     <DialogTitle>Add New Product</DialogTitle>
                     <DialogDescription>Create a new product. You can add variants after creation.</DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Product Name</Label>
+              <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto scrollbar-hidden px-2">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Product Name</Label>
                         <Input
                           id="name"
                           value={newProduct.name}
@@ -720,25 +725,20 @@ export default function AdminProductsPage() {
           </div>
 
           {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filters</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <Input
-                      placeholder="Search products..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
+                  />
                 </div>
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-full sm:w-48 h-11 bg-slate-50 border-slate-200 rounded-xl">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -755,11 +755,13 @@ export default function AdminProductsPage() {
           </Card>
 
           {/* Products Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Products ({filteredProducts.length})</CardTitle>
+          <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 pb-0">
+              <CardTitle className="text-lg font-bold text-slate-900">
+                Products ({filteredProducts.length})
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-5">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1088,7 +1090,7 @@ export default function AdminProductsPage() {
                 <DialogTitle>Edit Product</DialogTitle>
                 <DialogDescription>Update product information. Variants can be managed separately.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto scrollbar-hidden px-2">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="edit-name">Product Name</Label>

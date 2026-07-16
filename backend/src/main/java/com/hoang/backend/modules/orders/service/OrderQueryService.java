@@ -113,7 +113,7 @@ public class OrderQueryService {
                 orderRepository.countByUserIdAndStatus(user.getId(), OrderStatus.PROCESSING),
                 orderRepository.countByUserIdAndStatus(user.getId(), OrderStatus.SHIPPED),
                 orderRepository.countByUserIdAndStatus(user.getId(), OrderStatus.COMPLETED),
-                orderRepository.sumTotalByUserId(user.getId()),
+                orderRepository.sumTotalActiveByUserId(user.getId()),
                 null,
                 null,
                 null,
@@ -161,10 +161,10 @@ public class OrderQueryService {
         long shippedOrders = orderRepository.countByStatus(OrderStatus.SHIPPED);
         long completedOrders = orderRepository.countByStatus(OrderStatus.COMPLETED);
 
-        BigDecimal totalRevenue = orderRepository.sumTotal();
+        BigDecimal totalRevenue = orderRepository.sumTotalActive();
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         long recentOrders = orderRepository.countByDateGreaterThanEqual(thirtyDaysAgo);
-        BigDecimal recentRevenue = orderRepository.sumTotalFromDate(thirtyDaysAgo);
+        BigDecimal recentRevenue = orderRepository.sumTotalActiveFromDate(thirtyDaysAgo);
         BigDecimal averageOrderValue = totalOrders == 0
                 ? BigDecimal.ZERO
                 : totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP);

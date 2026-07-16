@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Edit, Trash2, Eye, FolderOpen, Package } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Eye, FolderOpen, Package, AlertCircle } from "lucide-react"
 import { ImageUpload } from "@/components/image-upload"
 import { SafeImage } from "@/components/safe-image"
 import { useToast } from "@/hooks/use-toast"
@@ -50,6 +50,45 @@ interface NewCategoryForm {
   sortOrder: string
 }
 
+function CategoriesSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-8 w-32 mb-2" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-8 w-12" />
+          </div>
+        ))}
+      </div>
+
+      <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex gap-4">
+          <Skeleton className="h-10 flex-1" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+      </div>
+
+      <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 py-3 border-b border-slate-100 last:border-0">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-lg" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminCategoriesPage() {
   const { toast } = useToast()
   const [categories, setCategories] = useState<Category[]>([])
@@ -72,19 +111,16 @@ export default function AdminCategoriesPage() {
     sortOrder: "",
   })
 
-  // Fetch categories on component mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setLoading(true)
         const data = await getAllCategories()
-        console.log('Categories data:', data) // Debug log
-        
-        // Handle paginated response format
+        console.log('Categories data:', data)
+
         if (data && typeof data === 'object' && 'results' in data && Array.isArray(data.results)) {
           setCategories(data.results)
         } else if (Array.isArray(data)) {
-          // Handle direct array response
           setCategories(data)
         } else {
           console.error('Categories data is not in expected format:', data)
@@ -97,7 +133,7 @@ export default function AdminCategoriesPage() {
         }
       } catch (error) {
         console.error('Error fetching categories:', error)
-        setCategories([]) // Reset to empty array on error
+        setCategories([])
         toast({
           title: "Error",
           description: "Failed to fetch categories",
@@ -148,7 +184,7 @@ export default function AdminCategoriesPage() {
 
       const createdCategory = await createCategory(categoryData)
       setCategories([...(categories || []), createdCategory])
-      
+
       setNewCategory({
         name: "",
         slug: "",
@@ -198,7 +234,7 @@ export default function AdminCategoriesPage() {
 
       const updatedCategory = await updateCategory(editingCategory.id.toString(), categoryData)
       setCategories((categories || []).map((c) => (c.id === editingCategory.id ? updatedCategory : c)))
-      
+
       setEditingCategory(null)
       setNewCategory({
         name: "",
@@ -288,27 +324,21 @@ export default function AdminCategoriesPage() {
     return parent ? `${parent.name} > ${category.name}` : category.name
   }
 
+  if (loading && categories.length === 0) {
+    return <CategoriesSkeleton />
+  }
+
   return (
-    <div className="space-y-8">
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading categories...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Header */}
-          <div className="flex justify-between items-center">{/* ...existing code... */}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-          <p className="text-slate-600">Organize your products with categories and subcategories</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Categories</h1>
+          <p className="text-slate-500 text-sm sm:text-base">Organize your products with categories and subcategories</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
           setIsAddDialogOpen(open)
           if (open) {
-            // Reset form when opening add dialog
             setNewCategory({
               name: "",
               slug: "",
@@ -321,7 +351,7 @@ export default function AdminCategoriesPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="rounded-xl">
               <Plus className="mr-2 h-4 w-4" />
               Add Category
             </Button>
@@ -331,7 +361,7 @@ export default function AdminCategoriesPage() {
               <DialogTitle>Add New Category</DialogTitle>
               <DialogDescription>Create a new category to organize your products</DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto">
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto scrollbar-hidden px-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Category Name *</Label>
@@ -347,6 +377,7 @@ export default function AdminCategoriesPage() {
                       }))
                     }}
                     placeholder="e.g., Smartphones"
+                    className="rounded-xl"
                   />
                 </div>
                 <div className="space-y-2">
@@ -356,6 +387,7 @@ export default function AdminCategoriesPage() {
                     value={newCategory.slug}
                     onChange={(e) => setNewCategory((prev) => ({ ...prev, slug: e.target.value }))}
                     placeholder="e.g., smartphones"
+                    className="rounded-xl"
                   />
                 </div>
               </div>
@@ -377,7 +409,7 @@ export default function AdminCategoriesPage() {
                     value={newCategory.parentId}
                     onValueChange={(value) => setNewCategory((prev) => ({ ...prev, parentId: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Select parent category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -398,6 +430,7 @@ export default function AdminCategoriesPage() {
                     value={newCategory.sortOrder}
                     onChange={(e) => setNewCategory((prev) => ({ ...prev, sortOrder: e.target.value }))}
                     placeholder="1"
+                    className="rounded-xl"
                   />
                 </div>
               </div>
@@ -420,75 +453,52 @@ export default function AdminCategoriesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">
                 Cancel
               </Button>
-              <Button onClick={handleAddCategory}>Add Category</Button>
+              <Button onClick={handleAddCategory} className="rounded-xl">Add Category</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Categories</CardTitle>
-            <FolderOpen className="h-4 w-4 text-slate-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(categories || []).length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Categories</CardTitle>
-            <FolderOpen className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(categories || []).filter((c) => c.is_active).length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Parent Categories</CardTitle>
-            <FolderOpen className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(categories || []).filter((c) => !c.parent_id).length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-            <Package className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(categories || []).reduce((sum, c) => sum + (c.product_count || 0), 0)}</div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        {[
+          { label: "Total Categories", value: (categories || []).length, icon: FolderOpen, color: "from-blue-500 to-indigo-500" },
+          { label: "Active Categories", value: (categories || []).filter((c) => c.is_active).length, icon: FolderOpen, color: "from-green-500 to-emerald-500" },
+          { label: "Parent Categories", value: (categories || []).filter((c) => !c.parent_id).length, icon: FolderOpen, color: "from-purple-500 to-pink-500" },
+          { label: "Total Products", value: (categories || []).reduce((sum, c) => sum + (c.product_count || 0), 0), icon: Package, color: "from-amber-500 to-orange-500" },
+        ].map((stat) => (
+          <Card key={stat.label} className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-xs sm:text-sm font-medium text-slate-500">{stat.label}</p>
+                <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                  <stat.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+              </div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">{stat.value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Search categories..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input
+                placeholder="Search categories..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
+              />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48 h-11 bg-slate-50 border-slate-200 rounded-xl">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -501,58 +511,70 @@ export default function AdminCategoriesPage() {
         </CardContent>
       </Card>
 
-      {/* Categories Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Categories ({filteredCategories.length})</CardTitle>
+      {/* Categories List */}
+      <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 pb-0">
+          <CardTitle className="text-lg font-bold text-slate-900">
+            Categories ({filteredCategories.length})
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Hierarchy</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Sort Order</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCategories
-                .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-                .map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
+          {filteredCategories.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-slate-300" />
+              </div>
+              <p className="text-slate-500 font-medium">
+                {searchTerm || statusFilter !== "all" ? "No categories match your filters." : "No categories found."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block space-y-0">
+                {/* Header */}
+                <div className="grid grid-cols-6 gap-x-6 px-4 py-3 border-b">
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Category</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Hierarchy</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Products</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Status</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Sort Order</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</span>
+                </div>
+                {/* Rows */}
+                {filteredCategories
+                  .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                  .map((category) => (
+                    <div key={category.id} className="grid grid-cols-6 gap-x-6 items-center px-4 py-4 border-b hover:bg-slate-50/50 transition-colors">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                           <SafeImage
                             src={category.image || "/placeholder.svg"}
                             alt={category.name}
-                            width={48}
-                            height={48}
+                            width={40}
+                            height={40}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <div>
-                          <p className="font-medium">{category.name}</p>
-                          <p className="text-sm text-slate-600">/{category.slug}</p>
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900 text-sm truncate">{category.name}</p>
+                          <p className="text-xs text-slate-500 truncate">/{category.slug}</p>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        {category.parent_id && <span className="text-slate-400 mr-1">└</span>}
-                        <span className="text-sm">{getCategoryHierarchy(category)}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center">
+                          {category.parent_id && <span className="text-slate-400 mr-1">└</span>}
+                          <span className="text-sm text-slate-600 truncate">{getCategoryHierarchy(category)}</span>
+                        </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{category.product_count || 0} products</Badge>
-                    </TableCell>
-                    <TableCell>
+                      <div>
+                        <Badge variant="outline" className="text-xs rounded-full">{category.product_count || 0} products</Badge>
+                      </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant={category.is_active ? "default" : "secondary"}>
+                        <Badge
+                          variant={category.is_active ? "default" : "secondary"}
+                          className={category.is_active ? "bg-green-100 text-green-700 border-0" : "bg-slate-100 text-slate-700 border-0"}
+                        >
                           {category.is_active ? "Active" : "Inactive"}
                         </Badge>
                         <Switch
@@ -560,24 +582,23 @@ export default function AdminCategoriesPage() {
                           onCheckedChange={() => toggleCategoryStatus(category.id)}
                         />
                       </div>
-                    </TableCell>
-                    <TableCell>{category.sort_order || 0}</TableCell>
-                    <TableCell>{new Date(category.updated_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
+                      <span className="text-sm text-slate-600">{category.sort_order || 0}</span>
+                      <div className="flex items-center space-x-1">
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9 rounded-xl hover:bg-slate-100"
                           onClick={() => {
                             setViewingCategory(category)
                             setIsViewDialogOpen(true)
                           }}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-slate-500" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9 rounded-xl hover:bg-slate-100"
                           onClick={() => {
                             setEditingCategory(category)
                             setNewCategory({
@@ -592,22 +613,108 @@ export default function AdminCategoriesPage() {
                             setIsEditDialogOpen(true)
                           }}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 text-slate-500" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9 rounded-xl hover:bg-slate-100"
                           onClick={() => handleDeleteCategory(category.id)}
-                          className="text-red-500 hover:text-red-700"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+                    </div>
+                  ))}
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-3">
+                {filteredCategories
+                  .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                  .map((category) => (
+                    <div key={category.id} className="p-4 bg-slate-50 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200">
+                            <SafeImage
+                              src={category.image || "/placeholder.svg"}
+                              alt={category.name}
+                              width={36}
+                              height={36}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-slate-900 text-sm truncate">{category.name}</p>
+                            <p className="text-xs text-slate-500 truncate">{getCategoryHierarchy(category)}</p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={category.is_active ? "default" : "secondary"}
+                          className={`text-xs rounded-full px-2.5 py-1 flex-shrink-0 ml-2 ${category.is_active ? "bg-green-100 text-green-700 border-0" : "bg-slate-100 text-slate-700 border-0"}`}
+                        >
+                          {category.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-white text-slate-600 px-2 py-1 rounded-lg border border-slate-200">
+                            {category.product_count || 0} products
+                          </span>
+                          <span className="text-xs text-slate-400">Sort: {category.sort_order || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Switch
+                            checked={category.is_active}
+                            onCheckedChange={() => toggleCategoryStatus(category.id)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-xl hover:bg-white"
+                            onClick={() => {
+                              setViewingCategory(category)
+                              setIsViewDialogOpen(true)
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5 text-slate-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-xl hover:bg-white"
+                            onClick={() => {
+                              setEditingCategory(category)
+                              setNewCategory({
+                                name: category.name,
+                                slug: category.slug,
+                                description: category.description,
+                                image: category.image,
+                                parentId: category.parent_id?.toString() || "",
+                                isActive: category.is_active,
+                                sortOrder: category.sort_order?.toString() || "",
+                              })
+                              setIsEditDialogOpen(true)
+                            }}
+                          >
+                            <Edit className="h-3.5 w-3.5 text-slate-500" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-xl hover:bg-white"
+                            onClick={() => handleDeleteCategory(category.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -686,7 +793,7 @@ export default function AdminCategoriesPage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="rounded-xl">
               Close
             </Button>
             <Button
@@ -704,6 +811,7 @@ export default function AdminCategoriesPage() {
                 })
                 setIsEditDialogOpen(true)
               }}
+              className="rounded-xl"
             >
               Edit Category
             </Button>
@@ -732,7 +840,7 @@ export default function AdminCategoriesPage() {
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription>Update category information</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto">
+          <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto scrollbar-hidden px-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Category Name *</Label>
@@ -747,6 +855,7 @@ export default function AdminCategoriesPage() {
                       slug: generateSlug(name),
                     }))
                   }}
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -755,6 +864,7 @@ export default function AdminCategoriesPage() {
                   id="edit-slug"
                   value={newCategory.slug}
                   onChange={(e) => setNewCategory((prev) => ({ ...prev, slug: e.target.value }))}
+                  className="rounded-xl"
                 />
               </div>
             </div>
@@ -775,7 +885,7 @@ export default function AdminCategoriesPage() {
                   value={newCategory.parentId}
                   onValueChange={(value) => setNewCategory((prev) => ({ ...prev, parentId: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-xl">
                     <SelectValue placeholder="Select parent category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -797,6 +907,7 @@ export default function AdminCategoriesPage() {
                   type="number"
                   value={newCategory.sortOrder}
                   onChange={(e) => setNewCategory((prev) => ({ ...prev, sortOrder: e.target.value }))}
+                  className="rounded-xl"
                 />
               </div>
             </div>
@@ -834,15 +945,14 @@ export default function AdminCategoriesPage() {
                   sortOrder: "",
                 })
               }}
+              className="rounded-xl"
             >
               Cancel
             </Button>
-            <Button onClick={handleEditCategory}>Update Category</Button>
+            <Button onClick={handleEditCategory} className="rounded-xl">Update Category</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-        </>
-      )}
     </div>
   )
 }

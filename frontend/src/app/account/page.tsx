@@ -28,6 +28,8 @@ import {
   Loader2,
   Heart,
 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
 import { useAuth } from "@/components/auth-provider"
 import { WishlistSummary } from "@/components/wishlist-summary"
 import { useToast } from "@/hooks/use-toast"
@@ -40,6 +42,25 @@ import {
   createAddress 
 } from "@/lib/services/auth"
 import { userOrdersApi, type Order } from "@/lib/services/orders"
+
+function AccountSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <Skeleton className="h-9 w-64 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="flex gap-2 w-full pb-1 mb-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-24 shrink-0" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px] w-full rounded-2xl" />
+      </div>
+    </div>
+  )
+}
 
 export default function AccountPage() {
   const { user, logout, updateUser } = useAuth()
@@ -478,15 +499,13 @@ export default function AccountPage() {
     }
   }
 
-  if (!user) {
-    return null
-  }
+  if (!user) return <AccountSkeleton />
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Account Settings</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Account Settings</h1>
           <p className="text-slate-600">Manage your account information and preferences</p>
         </div>
 
@@ -495,7 +514,7 @@ export default function AccountPage() {
             fetchOrders()
           }
         }}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="flex overflow-x-auto scrollbar-hidden gap-2 w-full pb-1">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="addresses">Addresses</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
@@ -505,10 +524,12 @@ export default function AccountPage() {
           </TabsList>
 
           <TabsContent value="profile">
-            <Card>
+            <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <User className="mr-2 h-5 w-5" />
+                  <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white mr-3">
+                    <User className="h-5 w-5" />
+                  </span>
                   Profile Information
                 </CardTitle>
               </CardHeader>
@@ -669,7 +690,7 @@ export default function AccountPage() {
                     <>
                       <Button
                         onClick={handleSaveProfile}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl"
                         disabled={usernameAvailable === false || emailAvailable === false}
                       >
                         Save Changes
@@ -704,10 +725,12 @@ export default function AccountPage() {
           </TabsContent>
 
           <TabsContent value="addresses">
-            <Card>
+            <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <MapPin className="mr-2 h-5 w-5" />
+                  <span className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white mr-3">
+                    <MapPin className="h-5 w-5" />
+                  </span>
                   Shipping Address
                 </CardTitle>
               </CardHeader>
@@ -768,16 +791,18 @@ export default function AccountPage() {
                   </div>
                 </div>
 
-                <Button onClick={handleSaveAddress} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSaveAddress} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl">
                   Save Address
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="mt-6">
+            <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <CreditCard className="mr-2 h-5 w-5" />
+                  <span className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white mr-3">
+                    <CreditCard className="h-5 w-5" />
+                  </span>
                   Payment Methods
                 </CardTitle>
               </CardHeader>
@@ -794,10 +819,12 @@ export default function AccountPage() {
           <TabsContent value="security">
             <div className="space-y-6">
               {/* Change Password */}
-              <Card>
+              <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Lock className="mr-2 h-5 w-5" />
+                    <span className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-500 rounded-xl flex items-center justify-center text-white mr-3">
+                      <Lock className="h-5 w-5" />
+                    </span>
                     Change Password
                   </CardTitle>
                 </CardHeader>
@@ -923,7 +950,7 @@ export default function AccountPage() {
                   <Button
                     onClick={handleChangePassword}
                     disabled={isChangingPassword}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl"
                   >
                     {isChangingPassword ? "Changing Password..." : "Change Password"}
                   </Button>
@@ -931,10 +958,12 @@ export default function AccountPage() {
               </Card>
 
               {/* Security Settings */}
-              <Card>
+              <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Shield className="mr-2 h-5 w-5" />
+                    <span className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-xl flex items-center justify-center text-white mr-3">
+                      <Shield className="h-5 w-5" />
+                    </span>
                     Security Settings
                   </CardTitle>
                 </CardHeader>
@@ -992,90 +1021,86 @@ export default function AccountPage() {
           </TabsContent>
 
           <TabsContent value="notifications">
-            <Card>
+            <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Bell className="mr-2 h-5 w-5" />
+                  <span className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-white mr-3">
+                    <Bell className="h-5 w-5" />
+                  </span>
                   Notification Preferences
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">Order Updates</h3>
                       <p className="text-sm text-slate-600">Get notified about your order status</p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Switch
                       checked={notificationSettings.orderUpdates}
-                      onChange={(e) => setNotificationSettings((prev) => ({ ...prev, orderUpdates: e.target.checked }))}
-                      className="rounded"
+                      onCheckedChange={(checked) => setNotificationSettings((prev) => ({ ...prev, orderUpdates: checked }))}
                     />
                   </div>
 
                   <Separator />
 
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">Marketing Emails</h3>
                       <p className="text-sm text-slate-600">Receive emails about new products and offers</p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Switch
                       checked={notificationSettings.marketingEmails}
-                      onChange={(e) =>
-                        setNotificationSettings((prev) => ({ ...prev, marketingEmails: e.target.checked }))
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, marketingEmails: checked }))
                       }
-                      className="rounded"
                     />
                   </div>
 
                   <Separator />
 
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">Security Alerts</h3>
                       <p className="text-sm text-slate-600">Get notified about security-related activities</p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Switch
                       checked={notificationSettings.securityAlerts}
-                      onChange={(e) =>
-                        setNotificationSettings((prev) => ({ ...prev, securityAlerts: e.target.checked }))
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, securityAlerts: checked }))
                       }
-                      className="rounded"
                     />
                   </div>
 
                   <Separator />
 
-                  <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">Product Updates</h3>
                       <p className="text-sm text-slate-600">Get notified about new product releases</p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Switch
                       checked={notificationSettings.productUpdates}
-                      onChange={(e) =>
-                        setNotificationSettings((prev) => ({ ...prev, productUpdates: e.target.checked }))
+                      onCheckedChange={(checked) =>
+                        setNotificationSettings((prev) => ({ ...prev, productUpdates: checked }))
                       }
-                      className="rounded"
                     />
                   </div>
                 </div>
 
-                <Button onClick={handleSaveNotifications} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={handleSaveNotifications} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl">
                   Save Preferences
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="mt-6">
+            <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden mt-6">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Globe className="mr-2 h-5 w-5" />
+                  <span className="w-10 h-10 bg-gradient-to-br from-teal-500 to-green-500 rounded-xl flex items-center justify-center text-white mr-3">
+                    <Globe className="h-5 w-5" />
+                  </span>
                   Privacy Settings
                 </CardTitle>
               </CardHeader>
@@ -1104,11 +1129,13 @@ export default function AccountPage() {
           </TabsContent>
 
           <TabsContent value="orders">
-            <Card>
+            <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <Package className="mr-2 h-5 w-5" />
+                    <span className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white mr-3">
+                      <Package className="h-5 w-5" />
+                    </span>
                     Order History
                   </div>
                   {orders.length > 0 && (

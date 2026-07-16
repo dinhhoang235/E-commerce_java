@@ -89,11 +89,11 @@ export function WishlistButton({
 
   return (
     <Button
-      variant={inWishlist ? "outline" : "outline"}
+      variant="outline"
       onClick={handleToggle}
       disabled={isLoading}
       className={cn(
-        "transition-all duration-200",
+        "transition-all duration-200 inline-flex items-center justify-center",
         sizeClasses[size],
         inWishlist && "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:border-red-300",
         className

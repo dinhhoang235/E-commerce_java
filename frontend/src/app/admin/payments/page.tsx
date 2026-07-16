@@ -1,23 +1,16 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -34,6 +27,35 @@ import {
   AlertCircle
 } from "lucide-react"
 import { paymentService, PaymentTransaction, PaymentStats } from "@/lib/services/payments"
+
+function PaymentsSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-8 w-48 mb-2" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-20" />
+          </div>
+        ))}
+      </div>
+      <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 py-3 border-b last:border-0">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<PaymentTransaction[]>([])
@@ -70,17 +92,17 @@ export default function PaymentsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: "bg-yellow-100 text-yellow-800",
-      success: "bg-green-100 text-green-800",
-      failed: "bg-red-100 text-red-800",
-      refunded: "bg-blue-100 text-blue-800",
-      canceled: "bg-gray-100 text-gray-800",
-      cancelled: "bg-gray-100 text-gray-800"
+    const variants: Record<string, string> = {
+      pending: "bg-yellow-100 text-yellow-700 border-0",
+      success: "bg-green-100 text-green-700 border-0",
+      failed: "bg-red-100 text-red-700 border-0",
+      refunded: "bg-blue-100 text-blue-700 border-0",
+      canceled: "bg-slate-100 text-slate-700 border-0",
+      cancelled: "bg-slate-100 text-slate-700 border-0"
     }
     
     return (
-      <Badge className={variants[status as keyof typeof variants] || "bg-gray-100 text-gray-800"}>
+      <Badge className={`text-xs rounded-full px-2.5 py-1 ${variants[status] || "bg-slate-100 text-slate-700 border-0"}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     )
@@ -89,11 +111,8 @@ export default function PaymentsPage() {
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = 
       payment.stripe_checkout_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.order_id.toString().includes(searchTerm) ||
-      (payment.order?.user.email && payment.order.user.email.toLowerCase().includes(searchTerm.toLowerCase()))
-    
+      payment.order_id.toString().includes(searchTerm)
     const matchesStatus = statusFilter === "all" || payment.status === statusFilter
-
     return matchesSearch && matchesStatus
   })
 
@@ -106,24 +125,34 @@ export default function PaymentsPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
       month: 'short',
       day: 'numeric',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     })
   }
 
+  const getCustomerName = (payment: PaymentTransaction) => {
+    if (payment.order?.user) {
+      return `${payment.order.user.first_name} ${payment.order.user.last_name}`.trim()
+    }
+    return null
+  }
+
+  const getCustomerEmail = (payment: PaymentTransaction) => {
+    return payment.order?.user?.email || null
+  }
+
   const exportPayments = () => {
     const csvContent = [
-      ['Order ID', 'Checkout ID', 'Amount', 'Status', 'Date', 'Customer Email'].join(','),
+      ['Order ID', 'Checkout ID', 'Amount', 'Status', 'Date'].join(','),
       ...filteredPayments.map(payment => [
         payment.order_id,
         payment.stripe_checkout_id,
         payment.amount,
         payment.status,
-        payment.created_at,
-        payment.order?.user.email || 'N/A'
+        payment.created_at
       ].join(','))
     ].join('\n')
 
@@ -137,32 +166,24 @@ export default function PaymentsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-          <p>Loading payments...</p>
-        </div>
-      </div>
-    )
+    return <PaymentsSkeleton />
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payment Transactions</h1>
-          <p className="text-muted-foreground">
-            Manage and monitor all payment transactions
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Payment Transactions</h1>
+          <p className="text-slate-500 text-sm">Manage and monitor all payment transactions</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={fetchPayments} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button onClick={fetchPayments} variant="outline" size="sm" className="rounded-xl h-9">
+            <RefreshCw className="h-4 w-4 mr-1.5" />
             Refresh
           </Button>
-          <Button onClick={exportPayments} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
+          <Button onClick={exportPayments} variant="outline" size="sm" className="rounded-xl h-9">
+            <Download className="h-4 w-4 mr-1.5" />
             Export
           </Button>
         </div>
@@ -170,72 +191,46 @@ export default function PaymentsPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_transactions}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(stats.total_amount)}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Successful</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.successful_transactions}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Failed/Pending</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {stats.failed_transactions + stats.pending_transactions}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            { label: "Total", value: stats.total_transactions, icon: CreditCard, color: "from-blue-500 to-indigo-500" },
+            { label: "Revenue", value: formatCurrency(stats.total_amount), icon: DollarSign, color: "from-green-500 to-emerald-500" },
+            { label: "Successful", value: stats.successful_transactions, icon: TrendingUp, color: "from-green-500 to-teal-500", textGreen: true },
+            { label: "Failed/Pending", value: stats.failed_transactions + stats.pending_transactions, icon: AlertCircle, color: "from-red-500 to-rose-500", textRed: true },
+          ].map((stat) => (
+            <Card key={stat.label} className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <p className="text-xs sm:text-sm font-medium text-slate-500">{stat.label}</p>
+                  <div className={`w-9 h-9 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center shadow-lg`}>
+                    <stat.icon className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+                <div className={`text-xl sm:text-2xl font-bold ${stat.textGreen ? 'text-green-600' : stat.textRed ? 'text-red-600' : 'text-slate-900'}`}>
+                  {stat.value}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by checkout ID, order ID, or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+      <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <Input
+                placeholder="Search by order ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl focus:bg-white"
+              />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <Filter className="h-4 w-4 mr-2" />
+              <SelectTrigger className="w-full sm:w-40 h-11 bg-slate-50 border-slate-200 rounded-xl">
+                <Filter className="h-4 w-4 mr-2 text-slate-400" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -251,126 +246,194 @@ export default function PaymentsPage() {
       </Card>
 
       {/* Payments Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Transactions</CardTitle>
-          <CardDescription>
-            {filteredPayments.length} of {payments.length} transactions
-          </CardDescription>
+      <Card className="border-0 shadow-sm bg-white rounded-2xl overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 pb-0">
+          <CardTitle className="text-lg font-bold text-slate-900">
+            Transactions
+            <span className="text-sm font-normal text-slate-500 ml-2">
+              ({filteredPayments.length} of {payments.length})
+            </span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPayments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">#{payment.order_id}</TableCell>
-                  <TableCell>
-                    {payment.order?.user ? (
+        <CardContent className="p-4 sm:p-5">
+          {filteredPayments.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="w-8 h-8 text-slate-300" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-1">No transactions found</h3>
+              <p className="text-slate-500 text-sm">
+                {searchTerm || statusFilter !== "all" 
+                  ? "Try adjusting your search or filter"
+                  : "Transactions will appear here once orders are processed"}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block space-y-0">
+                {/* Header */}
+                <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-x-6 px-4 py-3 border-b">
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Order</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Customer</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Status</span>
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Date</span>
+                  <span></span>
+                </div>
+                {/* Rows */}
+                {filteredPayments.map((payment) => {
+                  const customerName = getCustomerName(payment)
+                  const customerEmail = getCustomerEmail(payment)
+                  return (
+                    <div key={payment.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] gap-x-6 items-center px-4 py-4 border-b hover:bg-slate-50/50 transition-colors">
+                      <span className="font-semibold text-slate-900">#{payment.order_id}</span>
                       <div>
-                        <div className="font-medium">
-                          {payment.order.user.first_name} {payment.order.user.last_name}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {payment.order.user.email}
-                        </div>
+                        {customerName ? (
+                          <>
+                            <p className="font-medium text-slate-900 text-sm">{customerName}</p>
+                            {customerEmail && <p className="text-xs text-slate-500">{customerEmail}</p>}
+                          </>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
                       </div>
-                    ) : (
-                      'N/A'
-                    )}
-                  </TableCell>
-                  <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                  <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                  <TableCell>{formatDate(payment.created_at)}</TableCell>
-                  <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setSelectedPayment(payment)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Payment Details</DialogTitle>
-                          <DialogDescription>
-                            Transaction ID: {selectedPayment?.stripe_checkout_id}
-                          </DialogDescription>
-                        </DialogHeader>
-                        {selectedPayment && (
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-sm font-medium">Order ID</label>
-                                <p className="text-sm text-muted-foreground">#{selectedPayment.order_id}</p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Amount</label>
-                                <p className="text-sm text-muted-foreground">{formatCurrency(selectedPayment.amount)}</p>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Status</label>
-                                <div className="mt-1">{getStatusBadge(selectedPayment.status)}</div>
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium">Date</label>
-                                <p className="text-sm text-muted-foreground">{formatDate(selectedPayment.created_at)}</p>
-                              </div>
-                              <div className="col-span-2">
-                                <label className="text-sm font-medium">Stripe Checkout ID</label>
-                                <p className="text-sm text-muted-foreground font-mono">{selectedPayment.stripe_checkout_id}</p>
-                              </div>
-                              {selectedPayment.stripe_payment_intent && (
-                                <div className="col-span-2">
-                                  <label className="text-sm font-medium">Stripe Payment Intent</label>
-                                  <p className="text-sm text-muted-foreground font-mono">{selectedPayment.stripe_payment_intent}</p>
-                                </div>
-                              )}
-                              {selectedPayment.order?.user && (
-                                <div className="col-span-2">
-                                  <label className="text-sm font-medium">Customer Information</label>
-                                  <div className="mt-1 space-y-1">
-                                    <p className="text-sm text-muted-foreground">
-                                      {selectedPayment.order.user.first_name} {selectedPayment.order.user.last_name}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">{selectedPayment.order.user.email}</p>
+                      <span className="font-bold text-slate-900">{formatCurrency(payment.amount)}</span>
+                      <div>{getStatusBadge(payment.status)}</div>
+                      <span className="text-xs text-slate-500">{formatDate(payment.created_at)}</span>
+                      <div className="flex justify-center">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-slate-100"
+                              onClick={() => setSelectedPayment(payment)}
+                            >
+                              <Eye className="h-4 w-4 text-slate-500" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 overflow-hidden">
+                            <div className="p-5">
+                              <DialogHeader className="mb-4">
+                                <DialogTitle className="text-lg font-bold text-slate-900">Payment Details</DialogTitle>
+                              </DialogHeader>
+                              {selectedPayment && (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Order ID</label>
+                                      <p className="text-sm font-semibold text-slate-900 mt-0.5">#{selectedPayment.order_id}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Amount</label>
+                                      <p className="text-sm font-semibold text-slate-900 mt-0.5">{formatCurrency(selectedPayment.amount)}</p>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Status</label>
+                                      <div className="mt-1">{getStatusBadge(selectedPayment.status)}</div>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Date</label>
+                                      <p className="text-xs text-slate-900 mt-0.5">{formatDate(selectedPayment.created_at)}</p>
+                                    </div>
                                   </div>
+                                  <div className="p-3 bg-slate-50 rounded-xl">
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Checkout ID</label>
+                                    <p className="text-[11px] text-slate-700 font-mono break-all mt-1 leading-relaxed">{selectedPayment.stripe_checkout_id}</p>
+                                  </div>
+                                  {selectedPayment.stripe_payment_intent && (
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Payment Intent</label>
+                                      <p className="text-[11px] text-slate-700 font-mono break-all mt-1 leading-relaxed">{selectedPayment.stripe_payment_intent}</p>
+                                    </div>
+                                  )}
+                                  {customerName && (
+                                    <div className="p-3 bg-slate-50 rounded-xl">
+                                      <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Customer</label>
+                                      <p className="text-sm font-medium text-slate-900 mt-0.5">{customerName}</p>
+                                      {customerEmail && <p className="text-xs text-slate-500">{customerEmail}</p>}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-3">
+                {filteredPayments.map((payment) => {
+                  const customerName = getCustomerName(payment)
+                  return (
+                    <div key={payment.id} className="p-4 bg-slate-50 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-900">#{payment.order_id}</span>
+                        {getStatusBadge(payment.status)}
+                      </div>
+                      {customerName && (
+                        <p className="text-sm text-slate-600">{customerName}</p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900">{formatCurrency(payment.amount)}</span>
+                        <span className="text-xs text-slate-500">{formatDate(payment.created_at)}</span>
+                      </div>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full rounded-xl"
+                            onClick={() => setSelectedPayment(payment)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 overflow-hidden">
+                          <div className="p-5">
+                            <DialogHeader className="mb-4">
+                              <DialogTitle className="text-lg font-bold text-slate-900">Payment Details</DialogTitle>
+                            </DialogHeader>
+                            {selectedPayment && (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="p-3 bg-slate-50 rounded-xl">
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Order ID</label>
+                                    <p className="text-sm font-semibold text-slate-900 mt-0.5">#{selectedPayment.order_id}</p>
+                                  </div>
+                                  <div className="p-3 bg-slate-50 rounded-xl">
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Amount</label>
+                                    <p className="text-sm font-semibold text-slate-900 mt-0.5">{formatCurrency(selectedPayment.amount)}</p>
+                                  </div>
+                                  <div className="p-3 bg-slate-50 rounded-xl">
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Status</label>
+                                    <div className="mt-1">{getStatusBadge(selectedPayment.status)}</div>
+                                  </div>
+                                  <div className="p-3 bg-slate-50 rounded-xl">
+                                    <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Date</label>
+                                    <p className="text-xs text-slate-900 mt-0.5">{formatDate(selectedPayment.created_at)}</p>
+                                  </div>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded-xl">
+                                  <label className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Checkout ID</label>
+                                  <p className="text-[11px] text-slate-700 font-mono break-all mt-1 leading-relaxed">{selectedPayment.stripe_checkout_id}</p>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          {filteredPayments.length === 0 && (
-            <div className="text-center py-8">
-              <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium">No payment transactions found</h3>
-              <p className="text-muted-foreground">
-                {searchTerm || statusFilter !== "all" 
-                  ? "Try adjusting your search or filter criteria"
-                  : "Payment transactions will appear here once orders are processed"
-                }
-              </p>
-            </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

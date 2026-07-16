@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ShoppingCart, Star, X, Heart } from "lucide-react"
+import { ShoppingCart, X, Search, SlidersHorizontal } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useCart } from "@/components/cart-provider"
 import { WishlistButton } from "@/components/wishlist-button"
 import { getAllProducts, getProductsByCategory } from "@/lib/services/products"
@@ -17,7 +18,6 @@ import { getAllCategories } from "@/lib/services/categories"
 import { StarRating } from "@/components/star-rating"
 import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
-// Define Category interface
 interface Category {
   id: string | number
   name: string
@@ -30,14 +30,12 @@ interface Category {
   parent_id?: number | null
 }
 
-// Define ProductColor interface
 interface ProductColor {
   id: number
   name: string
   hex_code: string
 }
 
-// Define ProductVariant interface
 interface ProductVariant {
   id: number
   color: ProductColor
@@ -49,7 +47,6 @@ interface ProductVariant {
   total_stock: number
 }
 
-// Define the Product interface to match backend structure
 interface Product {
   id: string | number
   name: string
@@ -82,13 +79,11 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Fetch products and categories from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true)
         
-        // Fetch categories first
         const categoriesResponse = await getAllCategories()
         let categoriesData: Category[] = []
         if (Array.isArray(categoriesResponse)) {
@@ -97,11 +92,9 @@ export default function ProductsPage() {
           categoriesData = categoriesResponse.results
         }
         
-        // Filter active categories only
         const activeCategories = categoriesData.filter((cat: Category) => cat.is_active !== false)
         setAllCategories(activeCategories)
         
-        // Fetch products - use category filter if specified in URL
         const urlCategory = searchParams.get("category")
         let response
         
@@ -111,18 +104,13 @@ export default function ProductsPage() {
           response = await getAllProducts()
         }
         
-        // Handle paginated response structure: {count, next, previous, results}
         if (response && response.results && Array.isArray(response.results)) {
-          // Extract products array from the paginated response
           setAllProducts(response.results)
-          // Store the total count for display purposes
           setTotalProductCount(response.count || response.results.length)
         } else if (Array.isArray(response)) {
-          // Handle case where API directly returns an array
           setAllProducts(response)
           setTotalProductCount(response.length)
         } else {
-          console.error("API returned unexpected data structure:", response)
           setAllProducts([])
           setError("Data format error. Please try again later.")
         }
@@ -135,55 +123,46 @@ export default function ProductsPage() {
     }
 
     fetchData()
-  }, [searchParams]) // Re-fetch when URL parameters change
+  }, [searchParams])
 
-  // Initialize state from URL parameters
   useEffect(() => {
     const urlSearch = searchParams.get("search")
     const urlCategory = searchParams.get("category")
 
-    // If there are no URL parameters, clear all filters (user clicked "All Products")
     if (!urlSearch && !urlCategory) {
       setSearchTerm("")
       setSelectedCategory("all")
       return
     }
 
-    // Set filters from URL parameters
     if (urlSearch) {
       setSearchTerm(urlSearch)
     } else {
-      setSearchTerm("") // Clear search if not in URL
+      setSearchTerm("")
     }
 
     if (urlCategory) {
       setSelectedCategory(urlCategory)
     } else {
-      setSelectedCategory("all") // Reset to all if not in URL
+      setSelectedCategory("all")
     }
   }, [searchParams])
 
-  // Filter products based on search term and sort (category filtering is now done by API)
   useEffect(() => {
-    // Make sure allProducts is an array and not empty
     if (!Array.isArray(allProducts) || allProducts.length === 0) {
       setFilteredProducts([]);
       return;
     }
 
     try {
-      // Create a fresh copy of the products array
       let filtered = [...allProducts];
 
-      // Note: Category filtering is now handled by the API, not client-side
-      // Only filter by search term here
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         filtered = filtered.filter(
           (product: Product) => {
             if (!product) return false;
             
-            // Get category name for search
             let categoryName = "";
             if (product.category) {
               categoryName = product.category.name.toLowerCase();
@@ -198,7 +177,6 @@ export default function ProductsPage() {
         );
       }
       
-      // Sort products
       filtered.sort((a: Product, b: Product) => {
         try {
           switch (sortBy) {
@@ -212,19 +190,16 @@ export default function ProductsPage() {
               return a.name.localeCompare(b.name)
           }
         } catch (err) {
-          console.error("Error during sort:", err);
-          return 0; // Keep original order on error
+          return 0;
         }
       });
       
       setFilteredProducts(filtered);
     } catch (err) {
-      console.error("Error filtering products:", err);
       setFilteredProducts([]);
     }
-  }, [allProducts, searchTerm, sortBy]) // Removed selectedCategory since it's now handled by API
+  }, [allProducts, searchTerm, sortBy])
 
-  // Handle category change - fetch new products when category changes
   const handleCategoryChange = async (newCategory: string) => {
     setSelectedCategory(newCategory)
     setIsLoading(true)
@@ -238,7 +213,6 @@ export default function ProductsPage() {
         response = await getProductsByCategory(newCategory)
       }
       
-      // Handle response format
       if (response && response.results && Array.isArray(response.results)) {
         setAllProducts(response.results)
         setTotalProductCount(response.count || response.results.length)
@@ -246,12 +220,10 @@ export default function ProductsPage() {
         setAllProducts(response)
         setTotalProductCount(response.length)
       } else {
-        console.error("API returned unexpected data structure:", response)
         setAllProducts([])
         setError("Data format error. Please try again later.")
       }
     } catch (err) {
-      console.error("Failed to fetch products for category:", err)
       setError("Failed to load products. Please try again later.")
       setAllProducts([])
     } finally {
@@ -259,43 +231,41 @@ export default function ProductsPage() {
     }
   }
 
-  const handleAddToCart = (product: Product) => {
-    try {
-      if (!product || !product.id) {
-        console.error("Invalid product data", product);
-        return;
-      }
-      
-      // Use the minimum price variant for cart
-      const defaultPrice = product.min_price || 0;
-      
-      addItem({
-        id: parseInt(String(product.id)) || 0,  // Convert to string first, then to number, fallback to 0
-        productId: parseInt(String(product.id)) || 0,  // Add productId property required by cart provider
-        name: product.name || "Unknown Product",
-        price: defaultPrice,
-        image: product.image || "/placeholder.svg",  // Provide a default image
-      });
-    } catch (err) {
-      console.error("Error adding item to cart:", err);
-    }
-  }
-
-  const clearSearch = () => {
-    setSearchTerm("")
-  }
-
-  const clearCategory = () => {
-    setSelectedCategory("all")
-  }
-
+  const clearSearch = () => setSearchTerm("")
+  const clearCategory = () => setSelectedCategory("all")
   const hasActiveFilters = searchTerm || selectedCategory !== "all"
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <p className="text-slate-500">Loading products...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+        <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <Skeleton className="h-8 sm:h-9 w-48 mb-6" />
+          
+          <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-20 rounded-xl" />
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden border border-slate-100 bg-white">
+                <Skeleton className="h-48 sm:h-56 w-full" />
+                <div className="p-4 space-y-3">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-12 rounded-full" />
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-9 w-9 rounded-xl" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -303,221 +273,202 @@ export default function ProductsPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <p className="text-red-500">{error}</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-md mx-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h3 className="text-lg font-semibold mb-2 text-slate-900">Oops! Something went wrong</h3>
+          <p className="text-slate-500 mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()} className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl px-6 py-2.5 font-semibold shadow-lg shadow-blue-500/25">
+            Try Again
+          </Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl lg:text-4xl font-bold mb-4">
-          {selectedCategory === "all"
-            ? "All Products"
-            : allCategories.find(cat => cat.slug === selectedCategory)?.name || "Products"}
-        </h1>
-        <p className="text-slate-600">
-          {searchTerm ? `Search results for "${searchTerm}"` : "Discover our complete collection of Apple products"}
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50/50 via-white to-slate-100/50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-700 mb-3 px-4 py-1.5 rounded-full">
+            <SlidersHorizontal className="w-3 h-3 mr-1.5" />
+            Products
+          </Badge>
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight">
+            {selectedCategory === "all"
+              ? "All Products"
+              : allCategories.find(cat => cat.slug === selectedCategory)?.name || "Products"}
+          </h1>
+          <p className="text-slate-500 mt-2">
+            {searchTerm ? `Search results for "${searchTerm}"` : "Discover our complete collection"}
+          </p>
+        </div>
 
-      {/* Active Filters */}
-      {hasActiveFilters && (
-        <div className="mb-6">
-          <div className="flex items-center gap-2 flex-wrap">
+        {/* Active Filters */}
+        {hasActiveFilters && (
+          <div className="mb-6 flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-slate-600">Active filters:</span>
             {searchTerm && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Search: {searchTerm}
+              <Badge variant="secondary" className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1 shadow-sm">
+                <Search className="w-3 h-3" />
+                {searchTerm}
                 <Button variant="ghost" size="sm" className="h-4 w-4 p-0 hover:bg-transparent" onClick={clearSearch}>
                   <X className="h-3 w-3" />
                 </Button>
               </Badge>
             )}
             {selectedCategory !== "all" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                Category: {selectedCategory}
+              <Badge variant="secondary" className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1 shadow-sm">
+                {selectedCategory}
                 <Button variant="ghost" size="sm" className="h-4 w-4 p-0 hover:bg-transparent" onClick={clearCategory}>
                   <X className="h-3 w-3" />
                 </Button>
               </Badge>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Filters */}
-      <div className="flex flex-col lg:flex-row gap-4 mb-8 p-4 bg-slate-50 rounded-lg">
-        <div className="flex-1">
-          <Input
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
+        {/* Filters */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-8 p-5 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 h-11 rounded-xl bg-slate-50 border-slate-200/60 focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-500/20"
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-full lg:w-48 h-11 rounded-xl bg-slate-50">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="all">All Categories</SelectItem>
+              {allCategories.map((category) => (
+                <SelectItem key={category.id} value={category.slug}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full lg:w-48 h-11 rounded-xl bg-slate-50">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full lg:w-48">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {allCategories.map((category) => (
-              <SelectItem key={category.id} value={category.slug}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full lg:w-48">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="name">Name</SelectItem>
-            <SelectItem value="price-low">Price: Low to High</SelectItem>
-            <SelectItem value="price-high">Price: High to Low</SelectItem>
-            <SelectItem value="rating">Rating</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
-      {/* Results Count */}
-      {!isLoading && !error && (
+        {/* Results Count */}
         <div className="mb-6">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-500 font-medium">
             Showing {filteredProducts.length} of {totalProductCount} products
           </p>
         </div>
-      )}
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex justify-center items-center py-12">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-t-blue-600 border-b-blue-600 border-l-gray-200 border-r-gray-200 rounded-full animate-spin mb-4 mx-auto"></div>
-            <p className="text-slate-600">Loading products...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="text-center py-12">
-          <div className="max-w-md mx-auto">
-            <h3 className="text-lg font-semibold mb-2 text-red-600">Oops! Something went wrong</h3>
-            <p className="text-slate-500 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} className="mt-4">
-              Retry
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Products Grid */}
-      {!isLoading && !error && filteredProducts.length > 0 && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product: Product) => (
-          <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-            <CardContent className="p-6 flex flex-col h-full">
-              <Link href={`/products/${product.id}`} className="block">
-                <div className="relative mb-4">
-                  {product.badge && (
-                    <Badge className="absolute top-2 left-2 z-10 bg-red-500 hover:bg-red-600">{product.badge}</Badge>
-                  )}
-                  <div className="absolute top-2 right-2 z-10">
-                    <WishlistButton 
-                      productId={typeof product.id === 'string' ? parseInt(product.id) : product.id}
-                      variant="icon"
-                      className="bg-white/80 hover:bg-white shadow-md"
-                    />
-                  </div>
-                  <div className="relative aspect-square w-full">
-                    <Image
-                      src={formatImageUrl(product.image)}
-                      alt={product.name}
-                      fill
-                      unoptimized={isExternalImage(product.image)}
-                      className="object-contain rounded-lg group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                </div>
-              </Link>
-              <div className="space-y-3 flex-1 flex flex-col">
-                <Link href={`/products/${product.id}`} className="block">
-                  <h3 className="text-lg font-bold line-clamp-2 min-h-[3.5rem]">{product.name}</h3>
-                </Link>
-                <p className="text-sm text-slate-600 line-clamp-2 min-h-[2.5rem] flex-1">{product.description}</p>
-                <div className="space-y-3 mt-auto">
-                  <div className="flex items-center gap-2">
-                    <StarRating rating={product.rating} size="md" />
-                    <span className="text-sm text-slate-600">({product.reviews})</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {product.min_price === product.max_price ? (
-                      <span className="text-xl font-bold">${product.min_price}</span>
-                    ) : (
-                      <span className="text-xl font-bold">${product.min_price} - ${product.max_price}</span>
+        {/* Products Grid */}
+        {filteredProducts.length > 0 && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map((product: Product) => (
+              <Card key={product.id} className="group glass-card hover:shadow-card-hover transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden border-0">
+                <CardContent className="p-0">
+                  <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+                    {product.badge && (
+                      <Badge className="absolute top-3 left-3 z-10 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold px-3 py-1 rounded-full shadow-lg shadow-red-500/25">
+                        {product.badge}
+                      </Badge>
                     )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Link href={`/products/${product.id}`} className="w-full">
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700 justify-center">
-                        Buy
-                      </Button>
+                    <div className="absolute top-3 right-3 z-10">
+                      <WishlistButton 
+                        productId={typeof product.id === 'string' ? parseInt(product.id) : product.id}
+                        variant="icon"
+                        className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-md rounded-full h-9 w-9"
+                      />
+                    </div>
+                    <Link href={`/products/${product.id}`}>
+                      <div className="relative aspect-square overflow-hidden rounded-2xl">
+                        <Image
+                          src={formatImageUrl(product.image)}
+                          alt={product.name}
+                          fill
+                          unoptimized={isExternalImage(product.image)}
+                          className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </div>
                     </Link>
+                  </div>
+                  <div className="p-5 bg-white space-y-3">
+                    <Link href={`/products/${product.id}`} className="block">
+                      <h3 className="font-semibold text-slate-900 line-clamp-2 hover:text-blue-600 transition-colors leading-tight text-sm">
+                        {product.name}
+                      </h3>
+                    </Link>
+                    <div className="flex items-center gap-1.5">
+                      <StarRating rating={product.rating} size="sm" />
+                      <span className="text-xs text-slate-500 font-medium">({product.reviews})</span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                        {product.min_price === product.max_price 
+                          ? `$${product.min_price}` 
+                          : `$${product.min_price} - $${product.max_price}`}
+                      </span>
+                      <Link href={`/products/${product.id}`}>
+                        <Button size="sm" className="h-8 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold shadow-md shadow-blue-500/25 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300">
+                          <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+                          Buy
+                        </Button>
+                      </Link>
+                    </div>
                     <WishlistButton 
                       productId={typeof product.id === 'string' ? parseInt(product.id) : product.id}
                       variant="text"
-                      className="w-full justify-center"
+                      className="w-full justify-center h-8 rounded-xl text-xs"
                       showText={true}
                     />
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-      {/* No Results */}
-      {!isLoading && !error && filteredProducts.length === 0 && (
-        <div className="text-center py-12">
-          <div className="max-w-md mx-auto">
-            <h3 className="text-lg font-semibold mb-2">No products found</h3>
-            <p className="text-slate-500 mb-4">
+        {/* No Results */}
+        {!isLoading && !error && filteredProducts.length === 0 && (
+          <div className="text-center py-20 bg-white/60 backdrop-blur-sm rounded-3xl">
+            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-slate-900">No products found</h3>
+            <p className="text-slate-500 mb-6 max-w-md mx-auto">
               {searchTerm
                 ? `No products match your search for "${searchTerm}"`
                 : "No products found matching your criteria."}
             </p>
             {hasActiveFilters && (
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600">Try:</p>
-                <ul className="text-sm text-slate-500 space-y-1">
-                  <li>• Checking your spelling</li>
-                  <li>• Using different keywords</li>
-                  <li>• Removing some filters</li>
-                </ul>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm("")
-                    handleCategoryChange("all")
-                  }}
-                  className="mt-4"
-                >
-                  Clear all filters
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("")
+                  handleCategoryChange("all")
+                }}
+                className="rounded-xl px-6 py-2.5 font-medium"
+              >
+                Clear all filters
+              </Button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

@@ -103,7 +103,7 @@ public class PaymentQueryService {
     public Map<String, Object> adminPaymentStats() {
         return Map.of(
                 "total_transactions", paymentTransactionRepository.count(),
-                "total_amount", paymentTransactionRepository.sumAmount(),
+                "total_amount", paymentTransactionRepository.sumAmountByStatus(PaymentStatus.SUCCESS),
                 "successful_transactions", paymentTransactionRepository.countByStatus(PaymentStatus.SUCCESS),
                 "pending_transactions", paymentTransactionRepository.countByStatus(PaymentStatus.PENDING),
                 "failed_transactions", paymentTransactionRepository.countByStatus(PaymentStatus.FAILED),
@@ -114,7 +114,30 @@ public class PaymentQueryService {
     private Map<String, Object> toAdminPaymentPayload(PaymentTransaction transaction) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", transaction.getId());
-        payload.put("order_id", transaction.getOrder() == null ? null : transaction.getOrder().getId());
+        
+        // Include order and customer info
+        if (transaction.getOrder() != null) {
+            payload.put("order_id", transaction.getOrder().getId());
+            
+            // Include customer info from order's user
+            if (transaction.getOrder().getUser() != null) {
+                var user = transaction.getOrder().getUser();
+                Map<String, Object> customer = new LinkedHashMap<>();
+                customer.put("first_name", user.getFirstName());
+                customer.put("last_name", user.getLastName());
+                customer.put("email", user.getEmail());
+                
+                Map<String, Object> orderData = new LinkedHashMap<>();
+                orderData.put("id", transaction.getOrder().getId());
+                orderData.put("user", customer);
+                payload.put("order", orderData);
+            } else {
+                payload.put("order", Map.of("id", transaction.getOrder().getId()));
+            }
+        } else {
+            payload.put("order_id", null);
+        }
+        
         payload.put("stripe_checkout_id", transaction.getStripeCheckoutId());
         payload.put("stripe_payment_intent", transaction.getStripePaymentIntent());
         payload.put("amount", asPlain(transaction.getAmount()));
