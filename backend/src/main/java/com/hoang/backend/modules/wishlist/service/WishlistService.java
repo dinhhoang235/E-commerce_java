@@ -52,6 +52,9 @@ public class WishlistService {
         Wishlist wishlist = getOrCreateWishlist(authenticatedUsername);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product does not exist"));
+        if (!Boolean.TRUE.equals(product.getActive())) {
+            throw new IllegalArgumentException("Product does not exist");
+        }
 
         if (wishlistItemRepository.existsByWishlistIdAndProductId(wishlist.getId(), productId)) {
             throw new IllegalArgumentException("Item is already in your wishlist");

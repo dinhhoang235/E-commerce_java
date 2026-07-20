@@ -55,7 +55,7 @@ public class ProductService {
     }
 
     private List<ProductResponse> listProductsUncached(Map<String, String> queryParams) {
-        List<Product> products = productRepository.findAllByOrderByCreatedAtDesc();
+        List<Product> products = productRepository.findAllByActiveTrueOrderByCreatedAtDesc();
 
         String categorySlug = trimToNull(queryParams.get("category__slug"));
         String search = trimToNull(queryParams.get("search"));
@@ -67,6 +67,10 @@ public class ProductService {
         Integer limit = parseInt(queryParams.get("limit"));
 
         Map<Long, List<ProductVariant>> variantsMap = ProductMapper.variantsByProduct(products, productVariantRepository);
+
+        products = products.stream()
+                .filter(product -> hasInStockVariant(variantsMap.getOrDefault(product.getId(), List.of())))
+                .toList();
 
         if (categorySlug != null) {
             Optional<Category> targetOptional = categoryRepository.findBySlugIgnoreCase(categorySlug);
@@ -136,6 +140,9 @@ public class ProductService {
         return getOrCache(cacheService, "product:" + id, PRODUCT_DETAIL_CACHE_TTL, () -> {
             Product product = productRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Product not found."));
+            if (!Boolean.TRUE.equals(product.getActive())) {
+                throw new IllegalArgumentException("Product not found.");
+            }
             Map<Long, List<ProductVariant>> variantsMap = ProductMapper.variantsByProduct(List.of(product), productVariantRepository);
             return ProductMapper.toProductResponse(product, variantsMap, productRepository, objectMapper);
         });
@@ -145,6 +152,9 @@ public class ProductService {
         return getOrCache(cacheService, "product:" + productId + ":recommendations", PRODUCT_RECOMMENDATIONS_CACHE_TTL, () -> {
             Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found."));
+            if (!Boolean.TRUE.equals(product.getActive())) {
+                throw new IllegalArgumentException("Product not found.");
+            }
 
             Category currentCategory = product.getCategory();
             Long targetCategoryId = currentCategory.getParent() != null ? currentCategory.getParent().getId() : currentCategory.getId();
@@ -153,7 +163,7 @@ public class ProductService {
             categoryIds.add(targetCategoryId);
             categoryRepository.findByParentId(targetCategoryId).forEach(category -> categoryIds.add(category.getId()));
 
-            List<Product> products = productRepository.findDistinctByCategoryIdIn(categoryIds.stream().toList()).stream()
+            List<Product> products = productRepository.findDistinctByActiveTrueAndCategoryIdIn(categoryIds.stream().toList()).stream()
                 .filter(candidate -> !Objects.equals(candidate.getId(), productId))
                 .filter(candidate -> ProductMapper.hasInStockVariant(candidate.getId(), productVariantRepository))
                 .sorted(Comparator
@@ -169,10 +179,11 @@ public class ProductService {
 
     public List<ProductResponse> getTopSellers() {
         return getOrCache(cacheService, "products:top_sellers", PRODUCT_TOP_SELLERS_CACHE_TTL, () -> {
-            List<Product> products = productRepository.findAll();
+            List<Product> products = productRepository.findAllByActiveTrue();
             Map<Long, List<ProductVariant>> variantsMap = ProductMapper.variantsByProduct(products, productVariantRepository);
 
             List<Product> result = products.stream()
+                .filter(product -> hasInStockVariant(variantsMap.getOrDefault(product.getId(), List.of())))
                 .sorted(Comparator
                     .comparingInt((Product product) -> ProductMapper.totalSold(variantsMap.getOrDefault(product.getId(), List.of())))
                     .reversed()
@@ -183,6 +194,7 @@ public class ProductService {
 
             if (result.isEmpty()) {
             result = products.stream()
+                .filter(product -> hasInStockVariant(variantsMap.getOrDefault(product.getId(), List.of())))
                 .sorted(Comparator.comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(10)
                 .toList();
@@ -193,9 +205,13 @@ public class ProductService {
         });
     }
 
+    private boolean hasInStockVariant(List<ProductVariant> variants) {
+        return variants.stream().anyMatch(v -> Boolean.TRUE.equals(v.getIsInStock()));
+    }
+
     public List<ProductResponse> getNewArrivals() {
         return getOrCache(cacheService, "products:new_arrivals", PRODUCT_NEW_ARRIVALS_CACHE_TTL, () -> {
-            List<Product> products = productRepository.findAllByOrderByCreatedAtDesc().stream()
+            List<Product> products = productRepository.findAllByActiveTrueOrderByCreatedAtDesc().stream()
                     .filter(product -> ProductMapper.hasInStockVariant(product.getId(), productVariantRepository))
                     .limit(10)
                     .toList();
@@ -212,7 +228,7 @@ public class ProductService {
     }
 
     private List<ProductResponse> getPersonalizedUncached(List<Long> categoryIds) {
-        List<Product> products = productRepository.findAll();
+        List<Product> products = productRepository.findAllByActiveTrue();
 
         if (categoryIds != null && !categoryIds.isEmpty()) {
             Set<Long> categorySet = new LinkedHashSet<>(categoryIds);
@@ -241,7 +257,7 @@ public class ProductService {
     }
 
     private ProductFiltersResponse getFiltersUncached(String categorySlug) {
-        List<Product> products = productRepository.findAll();
+        List<Product> products = productRepository.findAllByActiveTrue();
 
         String normalizedSlug = trimToNull(categorySlug);
         if (normalizedSlug != null) {

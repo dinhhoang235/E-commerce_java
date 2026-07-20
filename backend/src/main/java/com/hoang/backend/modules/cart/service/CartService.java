@@ -149,8 +149,12 @@ public class CartService {
     }
 
     private ProductVariant requireVariant(Long variantId) {
-        return productVariantRepository.findById(variantId)
+        ProductVariant variant = productVariantRepository.findById(variantId)
                 .orElseThrow(() -> new IllegalArgumentException("Product variant does not exist"));
+        if (!Boolean.TRUE.equals(variant.getActive())) {
+            throw new IllegalArgumentException("Product variant does not exist");
+        }
+        return variant;
     }
 
     private void ensureStock(ProductVariant variant, int requestedQuantity) {

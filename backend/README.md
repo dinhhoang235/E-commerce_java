@@ -90,7 +90,27 @@ docker compose down
 docker compose down -v
 ```
 
-## 5) Cấu trúc file Spring Boot
+## 5) Seed data
+
+Seed data được đặt riêng ở `src/main/resources/db/seed/` .
+
+### Chạy seed (Docker)
+
+Chạy từ thư mục gốc project:
+
+```bash
+docker compose exec -T db mysql -u ${MYSQL_USER} -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < backend/src/main/resources/db/seed/seed_apple_products.sql
+```
+
+### Chạy seed (local MySQL)
+
+Chạy từ thư mục `backend/`:
+
+```bash
+mysql -u root -p ecommerce_java < src/main/resources/db/seed/seed_apple_products.sql
+```
+
+## 6) Cấu trúc file Spring Boot
 
 ```text
 backend/
@@ -141,4 +161,3 @@ Mỗi module thường theo flow:
 - `repository`: truy cập CSDL qua JPA
 - `entity`: định nghĩa bảng/quan hệ dữ liệu
 - `dto`: request/response object
-

@@ -40,15 +40,15 @@ public class ProductVariantService {
         if (productId.isPresent()) {
             Long value = productId.get();
             return getOrCache("product:" + value + ":variants:list", PRODUCT_VARIANTS_CACHE_TTL, () ->
-                    productVariantRepository.findByProductIdOrderByCreatedAtDesc(value).stream()
+                    productVariantRepository.findByProductIdAndActiveTrueOrderByCreatedAtDesc(value).stream()
                             .map(ProductMapper::toVariantResponse)
                             .toList()
             );
         }
 
         List<ProductVariant> variants = productId
-                .map(productVariantRepository::findByProductIdOrderByCreatedAtDesc)
-                .orElseGet(productVariantRepository::findAllByOrderByCreatedAtDesc);
+                .map(productVariantRepository::findByProductIdAndActiveTrueOrderByCreatedAtDesc)
+                .orElseGet(productVariantRepository::findAllByActiveTrueOrderByCreatedAtDesc);
 
         return variants.stream().map(ProductMapper::toVariantResponse).toList();
     }
@@ -57,6 +57,9 @@ public class ProductVariantService {
     public ProductVariantResponse getVariant(Long id) {
         ProductVariant variant = productVariantRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Variant not found."));
+        if (!Boolean.TRUE.equals(variant.getActive())) {
+            throw new IllegalArgumentException("Variant not found.");
+        }
         return ProductMapper.toVariantResponse(variant);
     }
 
@@ -173,7 +176,8 @@ public class ProductVariantService {
         ProductVariant variant = productVariantRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Variant not found."));
         Long productId = variant.getProduct().getId();
-        productVariantRepository.delete(variant);
+        variant.setActive(false);
+        productVariantRepository.save(variant);
         invalidateProductCache(productId);
     }
 
@@ -227,7 +231,7 @@ public class ProductVariantService {
                 throw new IllegalArgumentException("Product not found.");
             }
 
-            return productVariantRepository.findByProductId(productId).stream()
+            return productVariantRepository.findByProductIdAndActiveTrue(productId).stream()
                     .sorted(Comparator
                             .comparing((ProductVariant variant) -> variant.getColor().getName(), Comparator.nullsLast(String::compareToIgnoreCase))
                             .thenComparing(variant -> normalizeStorage(variant.getStorage()), Comparator.nullsLast(String::compareToIgnoreCase))

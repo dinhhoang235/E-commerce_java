@@ -13,11 +13,19 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
 
     List<ProductVariant> findAllByOrderByCreatedAtDesc();
 
+    List<ProductVariant> findAllByActiveTrueOrderByCreatedAtDesc();
+
     List<ProductVariant> findByProductId(Long productId);
+
+    List<ProductVariant> findByProductIdAndActiveTrue(Long productId);
 
     List<ProductVariant> findByProductIdOrderByCreatedAtDesc(Long productId);
 
+    List<ProductVariant> findByProductIdAndActiveTrueOrderByCreatedAtDesc(Long productId);
+
     List<ProductVariant> findByProductIdIn(List<Long> productIds);
+
+    List<ProductVariant> findByProductIdInAndActiveTrue(List<Long> productIds);
 
     boolean existsByProductIdAndColorIdAndStorage(Long productId, Long colorId, String storage);
 

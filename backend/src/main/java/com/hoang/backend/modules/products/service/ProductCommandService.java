@@ -63,7 +63,8 @@ public class ProductCommandService {
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found."));
-        productRepository.delete(product);
+        product.setActive(false);
+        productRepository.save(product);
         invalidateProductCache(id);
     }
 

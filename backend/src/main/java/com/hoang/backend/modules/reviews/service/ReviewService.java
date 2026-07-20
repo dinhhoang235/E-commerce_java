@@ -54,6 +54,9 @@ public class ReviewService {
         AppUser user = requireUser(authenticatedUsername);
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Product not found."));
+        if (!Boolean.TRUE.equals(product.getActive())) {
+            throw new IllegalArgumentException("Product not found.");
+        }
 
         if (reviewRepository.existsByUserIdAndProductId(user.getId(), productId)) {
             throw new IllegalArgumentException("You have already reviewed this product.");

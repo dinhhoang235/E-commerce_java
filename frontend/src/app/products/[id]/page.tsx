@@ -12,7 +12,7 @@ import { useCart } from "@/components/cart-provider"
 import { useAuth } from "@/components/auth-provider"
 import { WishlistButton } from "@/components/wishlist-button"
 import { ProductGallery } from "@/components/product-gallery"
-import { ProductSpecs } from "@/components/product-specs"
+
 import { ProductRecommendations } from "@/components/product-recommendations"
 import { getAllProducts, getProductById } from "@/lib/services/products"
 import { WriteReviewDialog } from "@/components/write-review-dialog"
@@ -528,9 +528,8 @@ export default function ProductPage() {
         {/* Product Details Tabs */}
         <div className="mt-10 sm:mt-16">
           <Tabs defaultValue="description">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-100/80 rounded-2xl p-1">
+            <TabsList className="grid w-full grid-cols-2 bg-slate-100/80 rounded-2xl p-1">
               <TabsTrigger value="description" className="rounded-xl font-medium text-xs sm:text-sm">Description</TabsTrigger>
-              <TabsTrigger value="specifications" className="rounded-xl font-medium text-xs sm:text-sm">Specs</TabsTrigger>
               <TabsTrigger value="reviews" className="rounded-xl font-medium text-xs sm:text-sm">Reviews</TabsTrigger>
             </TabsList>
             <TabsContent value="description" className="p-4 sm:p-8 bg-white rounded-2xl mt-4 shadow-sm">
@@ -553,9 +552,7 @@ export default function ProductPage() {
                 )}
               </div>
             </TabsContent>
-            <TabsContent value="specifications" className="p-4 sm:p-8 bg-white rounded-2xl mt-4 shadow-sm">
-              <ProductSpecs product={product} />
-            </TabsContent>
+
             <TabsContent value="reviews" className="p-4 sm:p-8 bg-white rounded-2xl mt-4 shadow-sm">
               <div className="space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-between">

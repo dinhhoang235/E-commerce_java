@@ -137,12 +137,12 @@ public final class ProductMapper {
             return Map.of();
         }
         List<Long> productIds = products.stream().map(Product::getId).toList();
-        return productVariantRepository.findByProductIdIn(productIds).stream()
+        return productVariantRepository.findByProductIdInAndActiveTrue(productIds).stream()
                 .collect(Collectors.groupingBy(variant -> variant.getProduct().getId()));
     }
 
     public static boolean hasInStockVariant(Long productId, ProductVariantRepository productVariantRepository) {
-        return productVariantRepository.findByProductId(productId).stream()
+        return productVariantRepository.findByProductIdAndActiveTrue(productId).stream()
                 .anyMatch(variant -> Boolean.TRUE.equals(variant.getIsInStock()));
     }
 

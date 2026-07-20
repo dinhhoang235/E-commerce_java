@@ -30,6 +30,9 @@ public class Product {
     @Column(nullable = false, length = 255)
     private String name;
 
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;

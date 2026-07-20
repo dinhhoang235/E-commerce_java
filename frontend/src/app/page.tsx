@@ -80,7 +80,7 @@ export default function HomePage() {
         }
 
         const featured = productsData
-          .filter((product: Product) => product.badge || product.rating >= 4.5)
+          .filter((product: Product) => (product.badge || product.rating >= 4.5) && (product.total_stock ?? 0) > 0)
           .slice(0, 3)
         
         setFeaturedProducts(featured)
