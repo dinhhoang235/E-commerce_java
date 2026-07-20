@@ -2,9 +2,11 @@ package com.hoang.backend.modules.products.controller;
 
 import com.hoang.backend.common.RequestPayloadReader;
 import com.hoang.backend.modules.products.dto.ProductFiltersResponse;
+import com.hoang.backend.modules.products.dto.ProductImageResponse;
 import com.hoang.backend.modules.products.dto.ProductResponse;
 import com.hoang.backend.modules.products.dto.ProductVariantResponse;
 import com.hoang.backend.modules.products.service.ProductCommandService;
+import com.hoang.backend.modules.products.service.ProductImageService;
 import com.hoang.backend.modules.products.service.ProductService;
 import com.hoang.backend.modules.products.service.ProductVariantService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +35,7 @@ public class ProductController {
     private final ProductService productService;
     private final ProductCommandService productCommandService;
     private final ProductVariantService productVariantService;
+    private final ProductImageService productImageService;
     private final RequestPayloadReader payloadReader;
 
     @GetMapping(value = {"", "/"})
@@ -79,7 +82,12 @@ public class ProductController {
     public ResponseEntity<ProductResponse> create(Authentication authentication, HttpServletRequest request) throws Exception {
         Map<String, Object> payload = payloadReader.readBody(request);
         MultipartFile imageFile = readImageFile(request);
-        return ResponseEntity.ok(productCommandService.createProduct(authentication.getName(), payload, imageFile, productService));
+        List<MultipartFile> imageFiles = readImageFiles(request);
+        ProductResponse created = productCommandService.createProduct(authentication.getName(), payload, imageFile, productService);
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            productImageService.addMultipleImages(authentication.getName(), created.id(), imageFiles);
+        }
+        return ResponseEntity.ok(productService.getProduct(created.id()));
     }
 
     @PutMapping(value = {"/{id}", "/{id}/"}, consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.MULTIPART_FORM_DATA_VALUE})
@@ -87,7 +95,12 @@ public class ProductController {
             throws Exception {
         Map<String, Object> payload = payloadReader.readBody(request);
         MultipartFile imageFile = readImageFile(request);
-        return ResponseEntity.ok(productCommandService.updateProduct(authentication.getName(), id, payload, imageFile, productService));
+        List<MultipartFile> imageFiles = readImageFiles(request);
+        ProductResponse updated = productCommandService.updateProduct(authentication.getName(), id, payload, imageFile, productService);
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            productImageService.addMultipleImages(authentication.getName(), id, imageFiles);
+        }
+        return ResponseEntity.ok(productService.getProduct(id));
     }
 
     @DeleteMapping(value = {"/{id}", "/{id}/"})
@@ -101,5 +114,13 @@ public class ProductController {
             return multipartRequest.getFile("imageFile");
         }
         return null;
+    }
+
+    private List<MultipartFile> readImageFiles(HttpServletRequest request) {
+        if (request instanceof MultipartHttpServletRequest multipartRequest) {
+            List<MultipartFile> files = multipartRequest.getFiles("imageFiles");
+            return files != null ? files : List.of();
+        }
+        return List.of();
     }
 }

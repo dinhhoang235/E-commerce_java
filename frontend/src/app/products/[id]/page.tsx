@@ -59,6 +59,7 @@ interface Product {
   min_price: number
   max_price: number
   image?: string
+  images?: Array<{ id: number; image_url: string; is_primary: boolean; sort_order: number }>
   category: Category
   rating: number
   reviews: number

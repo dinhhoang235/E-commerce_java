@@ -272,3 +272,53 @@ export async function getPersonalizedRecommendations(categoryIds?: string[]) {
     throw error
   }
 }
+
+// Product Image APIs
+export async function getProductImages(productId: string) {
+  try {
+    const response = await api.get(`/products/${productId}/images/`)
+    return response.data
+  } catch (error) {
+    console.error("Error fetching product images:", error)
+    throw error
+  }
+}
+
+export async function uploadProductImages(productId: string, files: File[]) {
+  try {
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append("imageFiles", file)
+    })
+    const response = await api.post(`/products/${productId}/images/`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    return response.data
+  } catch (error) {
+    console.error("Error uploading product images:", error)
+    throw error
+  }
+}
+
+export async function deleteProductImage(productId: string, imageId: number) {
+  try {
+    const response = await api.delete(`/products/${productId}/images/${imageId}/`)
+    return response.data
+  } catch (error) {
+    console.error("Error deleting product image:", error)
+    throw error
+  }
+}
+
+export async function updateProductImage(productId: string, imageId: number, data: { sort_order?: number; is_primary?: boolean }) {
+  try {
+    const params = new URLSearchParams()
+    if (data.sort_order !== undefined) params.append("sort_order", data.sort_order.toString())
+    if (data.is_primary !== undefined) params.append("is_primary", data.is_primary.toString())
+    const response = await api.put(`/products/${productId}/images/${imageId}/?${params.toString()}`)
+    return response.data
+  } catch (error) {
+    console.error("Error updating product image:", error)
+    throw error
+  }
+}

@@ -24,12 +24,17 @@ import {
   createVariant,
   getProductVariants,
   updateVariant,
-  deleteVariant
+  deleteVariant,
+  getProductImages,
+  uploadProductImages,
+  deleteProductImage,
+  updateProductImage
 } from "@/lib/services/products"
 import { getAllCategories } from "@/lib/services/categories"
 import { analyticsService } from "@/lib/services/analytics"
 import { SafeImage } from "@/components/safe-image"
 import { ImageUpload } from "@/components/image-upload"
+import { ImageUploadMulti } from "@/components/image-upload-multi"
 import { useImageCache } from "@/hooks/use-image-cache"
 import { formatImageUrl, isExternalImage } from "@/lib/utils/image"
 
@@ -62,6 +67,7 @@ interface Product {
   name: string
   category: any
   image: string
+  images: Array<{ id: number; image_url: string; is_primary: boolean; sort_order: number }>
   description: string
   full_description: string
   features: string[]
@@ -127,6 +133,11 @@ export default function AdminProductsPage() {
     name: "",
     hex_code: "#000000",
   })
+
+  // Multi-image state
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([])
+  const [existingImages, setExistingImages] = useState<Array<{ id: number; image_url: string; is_primary: boolean; sort_order: number }>>([])
+  const [editingProductImages, setEditingProductImages] = useState<Array<{ id: number; action: "keep" | "delete" }>>([])
 
   // Load initial data
   useEffect(() => {
@@ -259,7 +270,7 @@ export default function AdminProductsPage() {
         features: newProduct.features,
       }
 
-      // Handle image
+      // Handle image (legacy single image)
       if (newProduct.image instanceof File) {
         productData.imageFile = newProduct.image
       }
@@ -267,6 +278,11 @@ export default function AdminProductsPage() {
       console.log("Creating product:", productData)
       const createdProduct = await createProduct(productData)
       console.log("Created product:", createdProduct)
+      
+      // Upload additional images
+      if (newImageFiles.length > 0) {
+        await uploadProductImages(createdProduct.id.toString(), newImageFiles)
+      }
       
       // Update products list
       setProducts(prev => [...prev, createdProduct])
@@ -281,6 +297,7 @@ export default function AdminProductsPage() {
         image: "",
         features: [],
       })
+      setNewImageFiles([])
       
       setIsAddDialogOpen(false)
       
@@ -317,7 +334,7 @@ export default function AdminProductsPage() {
         features: newProduct.features,
       }
 
-      // Handle image
+      // Handle image (legacy single image)
       if (newProduct.image instanceof File) {
         productData.imageFile = newProduct.image
       } else if (newProduct.image === null) {
@@ -328,12 +345,26 @@ export default function AdminProductsPage() {
       const updatedProduct = await updateProduct(editingProduct.id.toString(), productData)
       console.log("Updated product:", updatedProduct)
       
-      // Update products list
-      setProducts(prev => prev.map(p => p.id === editingProduct.id ? updatedProduct : p))
-      
-      if (updatedProduct.image) {
-        invalidateCache(formatImageUrl(updatedProduct.image))
+      // Handle image deletions
+      for (const img of editingProductImages) {
+        if (img.action === "delete") {
+          await deleteProductImage(editingProduct.id.toString(), img.id)
+        }
       }
+      
+      // Handle primary image change
+      const newPrimary = existingImages.find(img => img.is_primary)
+      if (newPrimary) {
+        await updateProductImage(editingProduct.id.toString(), newPrimary.id, { is_primary: true })
+      }
+
+      // Upload new images
+      if (newImageFiles.length > 0) {
+        await uploadProductImages(editingProduct.id.toString(), newImageFiles)
+      }
+      
+      // Reload products to get fresh data with updated images
+      await reloadProducts()
       
       setEditingProduct(null)
       setIsEditDialogOpen(false)
@@ -348,6 +379,9 @@ export default function AdminProductsPage() {
         image: "",
         features: [],
       })
+      setNewImageFiles([])
+      setExistingImages([])
+      setEditingProductImages([])
       
       toast({
         title: "Product updated",
@@ -381,6 +415,16 @@ export default function AdminProductsPage() {
         variant: "destructive",
       })
     }
+  }
+
+  // Handle set primary image (local only, saved on update)
+  const handleSetPrimaryImage = (imageId: number) => {
+    setExistingImages(prev =>
+      prev.map(img => ({
+        ...img,
+        is_primary: img.id === imageId,
+      }))
+    )
   }
 
   // Handle load product variants
@@ -665,10 +709,12 @@ export default function AdminProductsPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <ImageUpload
-                        value={newProduct.image || undefined}
-                        onChange={(value) => setNewProduct(prev => ({ ...prev, image: value }))}
-                        label="Product Image"
+                      <ImageUploadMulti
+                        existingImages={[]}
+                        newFiles={newImageFiles}
+                        onFilesChange={setNewImageFiles}
+                        label="Product Images"
+                        maxImages={10}
                       />
                     </div>
 
@@ -865,7 +911,7 @@ export default function AdminProductsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
+                              onClick={async () => {
                                 setEditingProduct(product)
                                 setNewProduct({
                                   name: product.name || "",
@@ -876,6 +922,15 @@ export default function AdminProductsPage() {
                                   image: product.image || "",
                                   features: product.features || [],
                                 })
+                                // Load existing images
+                                try {
+                                  const images = await getProductImages(product.id.toString())
+                                  setExistingImages(Array.isArray(images) ? images : [])
+                                } catch {
+                                  setExistingImages([])
+                                }
+                                setNewImageFiles([])
+                                setEditingProductImages([])
                                 setIsEditDialogOpen(true)
                               }}
                             >
@@ -1151,10 +1206,14 @@ export default function AdminProductsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <ImageUpload
-                    value={newProduct.image || undefined}
-                    onChange={(value) => setNewProduct(prev => ({ ...prev, image: value }))}
-                    label="Product Image"
+                  <ImageUploadMulti
+                    existingImages={existingImages}
+                    newFiles={newImageFiles}
+                    onFilesChange={setNewImageFiles}
+                    onExistingImagesChange={setEditingProductImages}
+                    onSetPrimary={handleSetPrimaryImage}
+                    label="Product Images"
+                    maxImages={10}
                   />
                 </div>
 

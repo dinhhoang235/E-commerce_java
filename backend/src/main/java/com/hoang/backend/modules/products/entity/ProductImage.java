@@ -8,13 +8,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,46 +20,28 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "products")
-public class Product {
+@Table(name = "product_images")
+public class ProductImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @Column(name = "image_url", nullable = false, length = 500)
+    private String imageUrl;
+
+    @Column(name = "sort_order", nullable = false)
+    private Integer sortOrder = 0;
+
+    @Column(name = "is_primary", nullable = false)
+    private Boolean isPrimary = false;
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id", nullable = false)
-    private Category category;
-
-    @Column(length = 500)
-    private String image;
-
-    @Column(nullable = false)
-    private Double rating = 0.0;
-
-    @Column(nullable = false)
-    private Integer reviews = 0;
-
-    @Column(length = 50)
-    private String badge;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(name = "full_description", columnDefinition = "LONGTEXT")
-    private String fullDescription;
-
-    @Column(columnDefinition = "LONGTEXT")
-    private String features;
-
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    private List<ProductImage> images = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

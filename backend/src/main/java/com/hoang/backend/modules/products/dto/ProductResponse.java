@@ -9,6 +9,7 @@ public record ProductResponse(
         CategoryResponse category,
         Long category_id,
         String image,
+        List<ProductImageResponse> images,
         double rating,
         int reviews,
         String badge,

@@ -5,12 +5,14 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoang.backend.modules.products.dto.CategoryResponse;
 import com.hoang.backend.modules.products.dto.ProductColorResponse;
+import com.hoang.backend.modules.products.dto.ProductImageResponse;
 import com.hoang.backend.modules.products.dto.ProductResponse;
 import com.hoang.backend.modules.products.dto.ProductShortResponse;
 import com.hoang.backend.modules.products.dto.ProductVariantResponse;
 import com.hoang.backend.modules.products.entity.Category;
 import com.hoang.backend.modules.products.entity.Product;
 import com.hoang.backend.modules.products.entity.ProductColor;
+import com.hoang.backend.modules.products.entity.ProductImage;
 import com.hoang.backend.modules.products.entity.ProductVariant;
 import com.hoang.backend.modules.products.repository.ProductRepository;
 import com.hoang.backend.modules.products.repository.ProductVariantRepository;
@@ -58,12 +60,35 @@ public final class ProductMapper {
                 .map(ProductMapper::toVariantResponse)
                 .toList();
 
+        List<ProductImageResponse> imageResponses = product.getImages() == null ? List.of() :
+                product.getImages().stream()
+                        .filter(img -> Boolean.TRUE.equals(img.getActive()))
+                        .sorted(Comparator
+                                .comparing((ProductImage img) -> !Boolean.TRUE.equals(img.getIsPrimary()))
+                                .thenComparing(ProductImage::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder())))
+                        .map(ProductMapper::toImageResponse)
+                        .toList();
+
+        // Use primary image from images list as the main image, fallback to legacy field
+        String mainImage = safeString(product.getImage());
+        if (!imageResponses.isEmpty()) {
+            var primaryOpt = imageResponses.stream()
+                    .filter(ProductImageResponse::is_primary)
+                    .findFirst();
+            if (primaryOpt.isPresent()) {
+                mainImage = primaryOpt.get().image_url();
+            } else if (!imageResponses.isEmpty()) {
+                mainImage = imageResponses.get(0).image_url();
+            }
+        }
+
         return new ProductResponse(
                 product.getId(),
                 safeString(product.getName()),
                 toCategoryResponse(product.getCategory(), productRepository),
                 product.getCategory() == null ? null : product.getCategory().getId(),
-                safeString(product.getImage()),
+                mainImage,
+                imageResponses,
                 product.getRating() == null ? 0.0 : product.getRating(),
                 product.getReviews() == null ? 0 : product.getReviews(),
                 safeString(product.getBadge()),
@@ -103,6 +128,18 @@ public final class ProductMapper {
 
     public static ProductColorResponse toColorResponse(ProductColor color) {
         return new ProductColorResponse(color.getId(), safeString(color.getName()), safeString(color.getHexCode()));
+    }
+
+    public static ProductImageResponse toImageResponse(ProductImage image) {
+        return new ProductImageResponse(
+                image.getId(),
+                image.getProduct().getId(),
+                safeString(image.getImageUrl()),
+                image.getSortOrder() == null ? 0 : image.getSortOrder(),
+                Boolean.TRUE.equals(image.getIsPrimary()),
+                formatTime(image.getCreatedAt()),
+                formatTime(image.getUpdatedAt())
+        );
     }
 
     public static ProductVariantResponse toVariantResponse(ProductVariant variant) {
