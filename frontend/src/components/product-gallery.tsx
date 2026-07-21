@@ -31,7 +31,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-square bg-slate-100 rounded-lg overflow-hidden">
+      <div className="relative aspect-square bg-white rounded-lg overflow-hidden">
         <Dialog>
           <DialogTrigger asChild>
             <Button variant="outline" size="icon" className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm">

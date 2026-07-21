@@ -834,7 +834,7 @@ export default function AdminProductsPage() {
                       <TableRow key={product.id}>
                         <TableCell>
                           <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
                               <SafeImage
                                 src={getCachedImageUrl(formatImageUrl(product.image))}
                                 alt={product.name || "Product"}
@@ -1291,7 +1291,7 @@ export default function AdminProductsPage() {
                 <div className="grid gap-6">
                   {/* Product Image */}
                   <div className="flex justify-center">
-                    <div className="w-64 h-64 rounded-lg overflow-hidden bg-gray-100">
+                    <div className="w-64 h-64 rounded-lg overflow-hidden bg-white">
                       <SafeImage
                         src={formatImageUrl(viewingProduct.image)}
                         alt={viewingProduct.name}

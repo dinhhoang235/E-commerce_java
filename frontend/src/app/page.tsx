@@ -365,7 +365,7 @@ export default function HomePage() {
                   className="group glass-card hover:shadow-card-hover transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden border-0"
                 >
                   <CardContent className="p-0">
-                    <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+                    <div className="relative bg-white">
                       {index < 3 && (
                         <Badge className="absolute top-4 left-4 z-10 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold px-4 py-1.5 rounded-full shadow-lg shadow-orange-500/25">
                           #{index + 1} Best Seller
@@ -376,7 +376,7 @@ export default function HomePage() {
                           <img
                             src={formatImageUrl(product.image)}
                             alt={product.name}
-                            className="w-full h-64 object-contain p-4"
+                            className="w-full h-64 object-contain"
                           />
                         </div>
                       </Link>
@@ -462,7 +462,7 @@ export default function HomePage() {
                   className="group glass-card hover:shadow-card-hover transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden border-0"
                 >
                   <CardContent className="p-0">
-                    <div className="relative bg-white/60 backdrop-blur-sm p-6">
+                    <div className="relative bg-white">
                       <Badge className="absolute top-4 left-4 z-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-bold px-4 py-1.5 rounded-full shadow-lg shadow-purple-500/25">
                         NEW
                       </Badge>
@@ -471,7 +471,7 @@ export default function HomePage() {
                           <img
                             src={formatImageUrl(product.image)}
                             alt={product.name}
-                            className="w-full h-64 object-contain p-4"
+                            className="w-full h-64 object-contain"
                           />
                         </div>
                       </Link>
@@ -556,7 +556,7 @@ export default function HomePage() {
                   className="group glass-card hover:shadow-card-hover transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden border-0"
                 >
                   <CardContent className="p-0">
-                    <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+                    <div className="relative bg-white">
                       <Badge className="absolute top-4 left-4 z-10 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold px-4 py-1.5 rounded-full shadow-lg shadow-pink-500/25">
                         <Heart className="w-3 h-3 inline mr-1" />
                         For You
@@ -566,7 +566,7 @@ export default function HomePage() {
                           <img
                             src={formatImageUrl(product.image)}
                             alt={product.name}
-                            className="w-full h-64 object-contain p-4"
+                            className="w-full h-64 object-contain"
                           />
                         </div>
                       </Link>

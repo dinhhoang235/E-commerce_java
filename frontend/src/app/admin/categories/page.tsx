@@ -729,7 +729,7 @@ export default function AdminCategoriesPage() {
             <div className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <div className="aspect-square bg-slate-100 rounded-lg overflow-hidden">
+                  <div className="aspect-square bg-white rounded-lg overflow-hidden">
                     <SafeImage
                       src={viewingCategory.image || "/placeholder.svg"}
                       alt={viewingCategory.name}

@@ -134,7 +134,7 @@ export function ImageUploadMulti({
           {visibleExisting.map((image) => (
             <Card key={image.id} className="relative group">
               <CardContent className="p-2">
-                <div className="aspect-square relative rounded-md overflow-hidden bg-slate-100">
+                <div className="aspect-square relative rounded-md overflow-hidden bg-white">
                   <img
                     src={image.image_url}
                     alt="Product image"
@@ -184,7 +184,7 @@ export function ImageUploadMulti({
           {newFiles.map((file, index) => (
             <Card key={`new-${index}`} className="relative group">
               <CardContent className="p-2">
-                <div className="aspect-square relative rounded-md overflow-hidden bg-slate-100">
+                <div className="aspect-square relative rounded-md overflow-hidden bg-white">
                   <img
                     src={URL.createObjectURL(file)}
                     alt={`New image ${index + 1}`}

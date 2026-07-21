@@ -113,7 +113,7 @@ export function RelatedProducts({ currentProductId, category }: RelatedProductsP
           <Card key={product.id} className="group hover:shadow-xl transition-all duration-300">
             <CardContent className="p-4">
               <Link href={`/products/${product.id}`}>
-                <div className="relative mb-3 aspect-square bg-slate-100 rounded-lg overflow-hidden">
+                <div className="relative mb-3 aspect-square bg-white rounded-lg overflow-hidden">
                   {product.badge && (
                     <Badge className="absolute top-2 left-2 z-10 bg-red-500 hover:bg-red-600">{product.badge}</Badge>
                   )}

@@ -49,7 +49,7 @@ export function ProductCard({ product, className = "" }: ProductCardProps) {
     <Card className={`group glass-card hover:shadow-card-hover transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden border-0 ${className}`}>
       <CardContent className="p-0">
         {/* Image Container */}
-        <div className="relative bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+        <div className="relative bg-white">
           {/* Badge */}
           {product.badge && (
             <Badge className="absolute top-3 left-3 z-10 bg-gradient-to-r from-red-500 to-rose-500 text-white font-bold px-3 py-1 rounded-full shadow-lg shadow-red-500/25">
@@ -85,7 +85,7 @@ export function ProductCard({ product, className = "" }: ProductCardProps) {
                 alt={product.name}
                 fill
                 unoptimized={isExternalImage(product.image)}
-                className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
+                className="object-contain group-hover:scale-110 transition-transform duration-500"
               />
             </div>
           </Link>
