@@ -5,8 +5,11 @@ import static com.hoang.backend.common.util.TextUtils.*;
 import com.hoang.backend.common.constants.OrderStatus;
 import com.hoang.backend.common.constants.PaymentStatus;
 import com.hoang.backend.common.constants.ShippingMethod;
+import com.hoang.backend.common.dto.PaginatedResponse;
+import com.hoang.backend.common.exceptions.OrderNotFoundException;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.common.shipping.ShippingCostCalculator;
-import com.hoang.backend.modules.orders.dto.AdminOrderListResponse;
 import com.hoang.backend.modules.orders.dto.OrderHistoryResponse;
 import com.hoang.backend.modules.orders.dto.OrderItemResponse;
 import com.hoang.backend.modules.orders.dto.OrderResponse;
@@ -19,6 +22,7 @@ import com.hoang.backend.modules.orders.entity.Order;
 import com.hoang.backend.modules.orders.entity.OrderItem;
 import com.hoang.backend.modules.orders.repository.OrderItemRepository;
 import com.hoang.backend.modules.orders.repository.OrderRepository;
+import com.hoang.backend.modules.payments.entity.PaymentTransaction;
 import com.hoang.backend.modules.payments.repository.PaymentTransactionRepository;
 import com.hoang.backend.modules.products.entity.Product;
 import com.hoang.backend.modules.products.entity.ProductVariant;
@@ -32,10 +36,12 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,18 +61,28 @@ public class OrderQueryService {
     private final AccountRepository accountRepository;
     private final PaymentTransactionRepository paymentTransactionRepository;
 
-    public List<OrderResponse> listMyOrders(String authenticatedUsername) {
+    public PaginatedResponse<OrderResponse> listMyOrders(String authenticatedUsername, int page, int pageSize) {
         AppUser user = requireUser(authenticatedUsername);
-        return orderRepository.findByUserIdOrderByDateDesc(user.getId())
-                .stream()
-                .map(this::toOrderResponse)
-                .toList();
+        List<Order> allOrders = orderRepository.findByUserIdOrderByDateDesc(user.getId());
+
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.max(pageSize, 1);
+        int start = Math.min((safePage - 1) * safePageSize, allOrders.size());
+        int end = Math.min(start + safePageSize, allOrders.size());
+
+        List<Order> pageOrders = allOrders.subList(start, end);
+        Map<Long, Account> accountMap = buildAccountMap(pageOrders);
+        Map<String, List<PaymentTransaction>> paymentMap = buildPaymentMap(pageOrders);
+
+        List<OrderResponse> content = pageOrders.stream()
+                .map(order -> toOrderResponse(order, accountMap, paymentMap)).toList();
+        return new PaginatedResponse<>(content, safePage, safePageSize, allOrders.size());
     }
 
     public OrderResponse getMyOrder(String authenticatedUsername, String orderId) {
         AppUser user = requireUser(authenticatedUsername);
         Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
         return toOrderResponse(order);
     }
 
@@ -79,7 +95,12 @@ public class OrderQueryService {
         int start = Math.min((safePage - 1) * safePageSize, allOrders.size());
         int end = Math.min(start + safePageSize, allOrders.size());
 
-        List<OrderResponse> content = allOrders.subList(start, end).stream().map(this::toOrderResponse).toList();
+        List<Order> pageOrders = allOrders.subList(start, end);
+        Map<Long, Account> accountMap = buildAccountMap(pageOrders);
+        Map<String, List<PaymentTransaction>> paymentMap = buildPaymentMap(pageOrders);
+
+        List<OrderResponse> content = pageOrders.stream()
+                .map(order -> toOrderResponse(order, accountMap, paymentMap)).toList();
 
         return new OrderHistoryResponse(
                 content,
@@ -93,7 +114,7 @@ public class OrderQueryService {
     public Map<String, Object> checkPaymentStatus(String authenticatedUsername, String orderId) {
         AppUser user = requireUser(authenticatedUsername);
         Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
 
         String paymentStatus = paymentStatus(order);
         return Map.of(
@@ -121,34 +142,41 @@ public class OrderQueryService {
         );
     }
 
-    public AdminOrderListResponse listAdminOrders(String authenticatedUsername, String status, String customer, Integer limit) {
+    public PaginatedResponse<OrderResponse> listAdminOrders(String authenticatedUsername, String status, String customer, int page, int pageSize) {
         requireAdmin(authenticatedUsername);
-        List<Order> orders = orderRepository.findAllByOrderByDateDesc();
+        List<Order> allOrders = orderRepository.findAllByOrderByDateDesc();
 
         if (status != null && !status.isBlank()) {
             String normalized = status.trim().toLowerCase(Locale.ROOT);
-            orders = orders.stream().filter(order -> normalized.equals(order.getStatus())).toList();
+            allOrders = allOrders.stream().filter(order -> normalized.equals(order.getStatus())).toList();
         }
 
         if (customer != null && !customer.isBlank()) {
             String normalizedCustomer = customer.trim().toLowerCase(Locale.ROOT);
-            orders = orders.stream()
-                    .filter(order -> customerMatches(order, normalizedCustomer))
+            Map<Long, Account> accountMap = buildAccountMap(allOrders);
+            allOrders = allOrders.stream()
+                    .filter(order -> customerMatches(order, normalizedCustomer, accountMap))
                     .toList();
         }
 
-        if (limit != null && limit > 0 && limit < orders.size()) {
-            orders = orders.subList(0, limit);
-        }
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.max(pageSize, 1);
+        int start = Math.min((safePage - 1) * safePageSize, allOrders.size());
+        int end = Math.min(start + safePageSize, allOrders.size());
 
-        List<OrderResponse> results = orders.stream().map(this::toOrderResponse).toList();
-        return new AdminOrderListResponse(results.size(), results);
+        List<Order> pageOrders = allOrders.subList(start, end);
+        Map<Long, Account> accountMap = buildAccountMap(pageOrders);
+        Map<String, List<PaymentTransaction>> paymentMap = buildPaymentMap(pageOrders);
+
+        List<OrderResponse> results = pageOrders.stream()
+                .map(order -> toOrderResponse(order, accountMap, paymentMap)).toList();
+        return new PaginatedResponse<>(results, safePage, safePageSize, allOrders.size());
     }
 
     public OrderResponse adminGetOrder(String authenticatedUsername, String orderId) {
         requireAdmin(authenticatedUsername);
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
         return toOrderResponse(order);
     }
 
@@ -193,6 +221,10 @@ public class OrderQueryService {
     }
 
     OrderResponse toOrderResponse(Order order) {
+        return toOrderResponse(order, null, null);
+    }
+
+    private OrderResponse toOrderResponse(Order order, Map<Long, Account> accountMap, Map<String, List<PaymentTransaction>> paymentMap) {
         List<OrderItem> orderItems = orderItemRepository.findByOrderIdOrderByIdAsc(order.getId());
         List<OrderItemResponse> items = orderItems.stream().map(this::toOrderItemResponse).toList();
         List<String> products = orderItems.stream().map(this::productLabel).toList();
@@ -204,7 +236,7 @@ public class OrderQueryService {
         AppUser user = order.getUser();
         return new OrderResponse(
                 order.getId(),
-                customerName(user),
+                customerName(user, accountMap),
                 safeTrim(user.getEmail()),
                 products,
                 subtotal,
@@ -216,10 +248,10 @@ public class OrderQueryService {
                 new ShippingInfoResponse(shippingAddressFormatted(order.getShippingAddress()), shippingMethodLabel(order.getShippingMethod()), shippingCost),
                 items,
                 Boolean.TRUE.equals(order.getIsPaid()),
-                paymentStatus(order),
-                hasPendingPayment(order),
+                paymentStatus(order, paymentMap),
+                hasPendingPayment(order, paymentMap),
                 canContinuePayment(order),
-                toOrderUserResponse(user)
+                toOrderUserResponse(user, accountMap)
         );
     }
 
@@ -249,8 +281,11 @@ public class OrderQueryService {
         return safeTrim(product.getName()) + " (" + color + ", " + storage + ")" + suffix;
     }
 
-    private String customerName(AppUser user) {
-        Account account = accountRepository.findByUserId(user.getId()).orElse(null);
+    private String customerName(AppUser user, Map<Long, Account> accountMap) {
+        Account account = accountMap != null ? accountMap.get(user.getId()) : null;
+        if (account == null) {
+            account = accountRepository.findByUserId(user.getId()).orElse(null);
+        }
         if (account != null) {
             String fromAccount = joinName(account.getFirstName(), account.getLastName());
             if (!fromAccount.isBlank()) {
@@ -274,8 +309,11 @@ public class OrderQueryService {
         return "User " + user.getId();
     }
 
-    private OrderUserResponse toOrderUserResponse(AppUser user) {
-        Account account = accountRepository.findByUserId(user.getId()).orElse(null);
+    private OrderUserResponse toOrderUserResponse(AppUser user, Map<Long, Account> accountMap) {
+        Account account = accountMap != null ? accountMap.get(user.getId()) : null;
+        if (account == null) {
+            account = accountRepository.findByUserId(user.getId()).orElse(null);
+        }
         OrderUserAccountResponse accountResponse = account == null
                 ? null
                 : new OrderUserAccountResponse(safeTrim(account.getFirstName()), safeTrim(account.getLastName()));
@@ -329,16 +367,33 @@ public class OrderQueryService {
     }
 
     private String paymentStatus(Order order) {
-        if (paymentTransactionRepository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), PaymentStatus.REFUNDED).isPresent()) {
-            return PaymentStatus.REFUNDED;
+        return paymentStatus(order, null);
+    }
+
+    private String paymentStatus(Order order, Map<String, List<PaymentTransaction>> paymentMap) {
+        List<PaymentTransaction> txs = paymentMap != null ? paymentMap.get(order.getId()) : null;
+        if (txs == null) {
+            if (paymentTransactionRepository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), PaymentStatus.REFUNDED).isPresent()) {
+                return PaymentStatus.REFUNDED;
+            }
+            return paymentTransactionRepository.findFirstByOrderIdOrderByCreatedAtDesc(order.getId())
+                    .map(tx -> tx.getStatus() == null || tx.getStatus().isBlank() ? PaymentStatus.NO_PAYMENT : tx.getStatus())
+                    .orElse(PaymentStatus.NO_PAYMENT);
         }
-        return paymentTransactionRepository.findFirstByOrderIdOrderByCreatedAtDesc(order.getId())
+        boolean refunded = txs.stream().anyMatch(tx -> PaymentStatus.REFUNDED.equals(tx.getStatus()));
+        if (refunded) return PaymentStatus.REFUNDED;
+        return txs.stream()
+                .findFirst()
                 .map(tx -> tx.getStatus() == null || tx.getStatus().isBlank() ? PaymentStatus.NO_PAYMENT : tx.getStatus())
                 .orElse(PaymentStatus.NO_PAYMENT);
     }
 
-    private boolean hasPendingPayment(Order order) {
-        return paymentTransactionRepository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), PaymentStatus.PENDING).isPresent();
+    private boolean hasPendingPayment(Order order, Map<String, List<PaymentTransaction>> paymentMap) {
+        List<PaymentTransaction> txs = paymentMap != null ? paymentMap.get(order.getId()) : null;
+        if (txs == null) {
+            return paymentTransactionRepository.findFirstByOrderIdAndStatusOrderByCreatedAtDesc(order.getId(), PaymentStatus.PENDING).isPresent();
+        }
+        return txs.stream().anyMatch(tx -> PaymentStatus.PENDING.equals(tx.getStatus()));
     }
 
     private boolean canContinuePayment(Order order) {
@@ -346,13 +401,20 @@ public class OrderQueryService {
     }
 
     private boolean customerMatches(Order order, String customerKeyword) {
+        return customerMatches(order, customerKeyword, Map.of());
+    }
+
+    private boolean customerMatches(Order order, String customerKeyword, Map<Long, Account> accountMap) {
         AppUser user = order.getUser();
         List<String> candidates = new ArrayList<>();
         candidates.add(safeTrim(user.getUsername()));
         candidates.add(safeTrim(user.getFirstName()));
         candidates.add(safeTrim(user.getLastName()));
 
-        Account account = accountRepository.findByUserId(user.getId()).orElse(null);
+        Account account = accountMap != null ? accountMap.get(user.getId()) : null;
+        if (account == null) {
+            account = accountRepository.findByUserId(user.getId()).orElse(null);
+        }
         if (account != null) {
             candidates.add(safeTrim(account.getFirstName()));
             candidates.add(safeTrim(account.getLastName()));
@@ -363,15 +425,27 @@ public class OrderQueryService {
                 .anyMatch(value -> value.contains(customerKeyword));
     }
 
+    private Map<Long, Account> buildAccountMap(List<Order> orders) {
+        List<Long> userIds = orders.stream().map(o -> o.getUser().getId()).distinct().toList();
+        return accountRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(a -> a.getUser().getId(), a -> a, (a1, a2) -> a1));
+    }
+
+    private Map<String, List<PaymentTransaction>> buildPaymentMap(List<Order> orders) {
+        List<String> orderIds = orders.stream().map(Order::getId).toList();
+        return paymentTransactionRepository.findByOrderIdIn(orderIds).stream()
+                .collect(Collectors.groupingBy(tx -> tx.getOrder().getId()));
+    }
+
     private AppUser requireUser(String authenticatedUsername) {
         return appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
     }
 
     private AppUser requireAdmin(String authenticatedUsername) {
         AppUser user = requireUser(authenticatedUsername);
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("You do not have permission to access this resource.");
+            throw new UnauthorizedException();
         }
         return user;
     }

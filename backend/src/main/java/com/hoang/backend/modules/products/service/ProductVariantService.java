@@ -3,6 +3,9 @@ package com.hoang.backend.modules.products.service;
 import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.hoang.backend.common.InMemoryCacheService;
+import com.hoang.backend.common.exceptions.InsufficientStockException;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.products.dto.ProductVariantResponse;
 import com.hoang.backend.modules.products.entity.Product;
 import com.hoang.backend.modules.products.entity.ProductColor;
@@ -192,7 +195,7 @@ public class ProductVariantService {
             throw new IllegalArgumentException("Quantity must be positive.");
         }
         if (variant.getStock() < safeQuantity) {
-            throw new IllegalArgumentException("Insufficient stock. Available: " + variant.getStock() + ", Requested: " + safeQuantity);
+            throw new InsufficientStockException(variant.getId(), variant.getStock(), safeQuantity);
         }
 
         variant.setStock(variant.getStock() - safeQuantity);
@@ -254,9 +257,9 @@ public class ProductVariantService {
     private void requireAdmin(String usernameOrEmail) {
         AppUser user = appUserRepository.findByUsernameIgnoreCase(usernameOrEmail)
                 .or(() -> appUserRepository.findByEmailIgnoreCase(usernameOrEmail))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(usernameOrEmail));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

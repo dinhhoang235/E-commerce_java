@@ -1,5 +1,6 @@
 package com.hoang.backend.modules.orders.controller;
 
+import com.hoang.backend.common.dto.PaginatedResponse;
 import com.hoang.backend.modules.orders.dto.OrderCreateRequest;
 import com.hoang.backend.modules.orders.dto.OrderHistoryResponse;
 import com.hoang.backend.modules.orders.dto.OrderResponse;
@@ -31,8 +32,11 @@ public class OrderController {
     private final OrderQueryService orderQueryService;
 
     @GetMapping(value = {"", "/"})
-    public ResponseEntity<java.util.List<OrderResponse>> listMyOrders(Authentication authentication) {
-        return ResponseEntity.ok(orderQueryService.listMyOrders(authentication.getName()));
+    public ResponseEntity<PaginatedResponse<OrderResponse>> listMyOrders(
+            Authentication authentication,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page_size", defaultValue = "10") int pageSize) {
+        return ResponseEntity.ok(orderQueryService.listMyOrders(authentication.getName(), page, pageSize));
     }
 
     @GetMapping(value = {"/{orderId}", "/{orderId}/"})

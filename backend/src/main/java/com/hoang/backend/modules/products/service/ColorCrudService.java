@@ -4,6 +4,8 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.hoang.backend.common.InMemoryCacheService;
 import com.hoang.backend.common.crud.BaseCrudService;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.products.dto.ProductColorResponse;
 import com.hoang.backend.modules.products.entity.ProductColor;
 import com.hoang.backend.modules.products.repository.ProductColorRepository;
@@ -55,9 +57,9 @@ public class ColorCrudService extends BaseCrudService<ProductColor, ProductColor
     protected void checkPermissions(String authenticatedUsername) {
         AppUser user = appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
                 .or(() -> appUserRepository.findByEmailIgnoreCase(authenticatedUsername))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

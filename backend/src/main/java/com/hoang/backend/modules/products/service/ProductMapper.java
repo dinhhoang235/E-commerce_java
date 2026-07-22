@@ -120,7 +120,7 @@ public final class ProductMapper {
                 category.getSortOrder() == null ? 0 : category.getSortOrder(),
                 category.getParent() == null ? null : category.getParent().getId(),
                 category.getParent() == null ? null : category.getParent().getId(),
-                Math.toIntExact(productRepository.countByCategoryId(category.getId())),
+                category.getProductCount() == null ? 0 : category.getProductCount(),
                 formatTime(category.getCreatedAt()),
                 formatTime(category.getUpdatedAt())
         );

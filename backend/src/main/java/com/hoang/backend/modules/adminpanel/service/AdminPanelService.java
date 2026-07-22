@@ -2,6 +2,8 @@ package com.hoang.backend.modules.adminpanel.service;
 
 import static com.hoang.backend.common.util.TextUtils.*;
 
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.adminpanel.dto.AdminLoginRequest;
 import com.hoang.backend.modules.adminpanel.dto.AdminLoginResponse;
 import com.hoang.backend.modules.payments.service.PaymentQueryService;
@@ -56,9 +58,9 @@ public class AdminPanelService {
 
     private void requireAdmin(String usernameOrEmail) {
         AppUser user = findByUsernameOrEmail(usernameOrEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(usernameOrEmail));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

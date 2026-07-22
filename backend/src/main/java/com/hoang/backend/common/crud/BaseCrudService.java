@@ -4,6 +4,8 @@ import com.hoang.backend.common.InMemoryCacheService;
 import java.util.Map;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import com.hoang.backend.common.exceptions.UserNotFoundException;
+
 public abstract class BaseCrudService<E, R> {
 
     protected final InMemoryCacheService cacheService;

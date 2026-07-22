@@ -29,4 +29,6 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     BigDecimal sumAmountByStatus(@Param("status") String status);
 
     List<PaymentTransaction> findAllByOrderByCreatedAtDesc();
+
+    List<PaymentTransaction> findByOrderIdIn(List<String> orderIds);
 }

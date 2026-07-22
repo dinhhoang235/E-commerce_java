@@ -1,5 +1,7 @@
 package com.hoang.backend.modules.users.service;
 
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.users.dto.EmailAvailabilityResponse;
 import com.hoang.backend.modules.users.dto.LoginRequest;
 import com.hoang.backend.modules.users.dto.RegisterRequest;
@@ -67,10 +69,10 @@ public class UserAuthService {
         String rawPassword = request.password() == null ? "" : request.password();
 
         AppUser user = findByUsernameOrEmail(identifier)
-                .orElseThrow(() -> new IllegalArgumentException("No user found with this username/email."));
+                .orElseThrow(() -> new UserNotFoundException(identifier));
 
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid credentials.");
+            throw new UnauthorizedException();
         }
 
         user.setLastLogin(LocalDateTime.now());
@@ -84,7 +86,7 @@ public class UserAuthService {
 
         tokenService.revokeUserTokens(userId);
         AppUser user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(String.valueOf(userId)));
         return tokenService.issueTokens(user);
     }
 
@@ -118,7 +120,7 @@ public class UserAuthService {
 
     public AppUser requireUser(String username) {
         return findByUsernameOrEmail(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     private Optional<AppUser> findByUsernameOrEmail(String value) {

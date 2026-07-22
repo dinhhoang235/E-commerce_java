@@ -1,6 +1,6 @@
 package com.hoang.backend.common.exceptions;
 
-public class PaymentException extends IllegalArgumentException {
+public class PaymentException extends RuntimeException {
     public PaymentException(String message) {
         super(message);
     }

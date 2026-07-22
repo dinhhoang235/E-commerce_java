@@ -1,5 +1,7 @@
 package com.hoang.backend.modules.cart.service;
 
+import com.hoang.backend.common.exceptions.InsufficientStockException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.cart.dto.AddToCartRequest;
 import com.hoang.backend.modules.cart.dto.CartCountResponse;
 import com.hoang.backend.modules.cart.dto.CartItemActionResponse;
@@ -138,7 +140,7 @@ public class CartService {
 
     private Cart getOrCreateCart(String authenticatedUsername) {
         AppUser user = appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
 
         return cartRepository.findByUserId(user.getId())
                 .orElseGet(() -> {
@@ -160,9 +162,7 @@ public class CartService {
     private void ensureStock(ProductVariant variant, int requestedQuantity) {
         int available = variant.getStock() == null ? 0 : variant.getStock();
         if (requestedQuantity > available) {
-            throw new IllegalArgumentException(
-                    "Insufficient stock for variant " + variant.getId() + ". Available: " + available + ", Requested: " + requestedQuantity
-            );
+            throw new InsufficientStockException(variant.getId(), available, requestedQuantity);
         }
     }
 

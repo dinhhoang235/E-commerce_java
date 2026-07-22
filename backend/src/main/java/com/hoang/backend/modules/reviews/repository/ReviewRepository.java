@@ -3,14 +3,17 @@ package com.hoang.backend.modules.reviews.repository;
 import com.hoang.backend.modules.reviews.entity.Review;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
+    @EntityGraph(attributePaths = {"user", "product"})
     List<Review> findAllByOrderByCreatedAtDesc();
 
+    @EntityGraph(attributePaths = {"user", "product"})
     List<Review> findByProductIdOrderByCreatedAtDesc(Long productId);
 
     boolean existsByUserIdAndProductId(Long userId, Long productId);

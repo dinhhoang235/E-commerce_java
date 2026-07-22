@@ -8,6 +8,9 @@ import com.hoang.backend.common.constants.OrderStatus;
 import com.hoang.backend.common.constants.PaymentStatus;
 import com.hoang.backend.common.event.EventPublisher;
 import com.hoang.backend.common.event.PaymentSucceededEvent;
+import com.hoang.backend.common.exceptions.OrderNotFoundException;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.common.shipping.ShippingCostCalculator;
 import com.hoang.backend.modules.orders.dto.OrderCreateItemRequest;
 import com.hoang.backend.modules.orders.dto.OrderCreateRequest;
@@ -161,7 +164,7 @@ public class PaymentCommandService {
             throw new IllegalArgumentException("Order ID not found in payment session");
         }
         if (blank(metadataUserId) || !metadataUserId.equals(String.valueOf(user.getId()))) {
-            throw new IllegalArgumentException("Payment session does not belong to current user");
+            throw new UnauthorizedException();
         }
 
         Order order = requireOrder(orderId, user.getId());
@@ -194,7 +197,7 @@ public class PaymentCommandService {
     public Map<String, Object> processFullRefund(String authenticatedUsername, String orderId, String reason) {
         AppUser user = requireUser(authenticatedUsername);
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("You do not have permission to process refunds.");
+            throw new UnauthorizedException();
         }
         Order order = requireOrder(orderId, user.getId());
 
@@ -359,13 +362,13 @@ public class PaymentCommandService {
 
     private Order requireOrder(String orderId, Long userId) {
         return orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     private AppUser requireUser(String authenticatedUsername) {
         return appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
                 .or(() -> appUserRepository.findByEmailIgnoreCase(authenticatedUsername))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
     }
 
 }

@@ -1,8 +1,9 @@
 package com.hoang.backend.modules.users.controller;
 
 import com.hoang.backend.common.RequestPayloadReader;
+import com.hoang.backend.common.dto.PaginatedResponse;
 import com.hoang.backend.modules.users.dto.AccountResponse;
-import com.hoang.backend.modules.users.dto.CustomerListResponse;
+import com.hoang.backend.modules.users.dto.AdminCustomerResponse;
 import com.hoang.backend.modules.users.dto.PasswordChangeRequest;
 import com.hoang.backend.modules.users.service.UserAccountService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -55,7 +56,7 @@ public class UserController {
     }
 
     @GetMapping(value = {"/admin/customers", "/admin/customers/"})
-    public ResponseEntity<CustomerListResponse> listCustomers(
+    public ResponseEntity<PaginatedResponse<AdminCustomerResponse>> listCustomers(
             @RequestParam(required = false, defaultValue = "") String search,
             @RequestParam(required = false, defaultValue = "") String status,
             @RequestParam(required = false, defaultValue = "1") int page,

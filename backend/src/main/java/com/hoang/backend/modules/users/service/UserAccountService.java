@@ -3,12 +3,13 @@ package com.hoang.backend.modules.users.service;
 import static com.hoang.backend.common.util.TextUtils.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hoang.backend.common.dto.PaginatedResponse;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.common.storage.MinioService;
 import com.hoang.backend.modules.users.dto.AccountResponse;
 import com.hoang.backend.modules.users.dto.AddressRequest;
 import com.hoang.backend.modules.users.dto.AddressResponse;
 import com.hoang.backend.modules.users.dto.AdminCustomerResponse;
-import com.hoang.backend.modules.users.dto.CustomerListResponse;
 import com.hoang.backend.modules.users.dto.PasswordChangeRequest;
 import com.hoang.backend.modules.users.entity.Account;
 import com.hoang.backend.modules.users.entity.Address;
@@ -94,7 +95,7 @@ public class UserAccountService {
     }
 
     @Transactional(readOnly = true)
-    public CustomerListResponse listCustomers(String search, String status, int page, int pageSize) {
+    public PaginatedResponse<AdminCustomerResponse> listCustomers(String search, String status, int page, int pageSize) {
         List<AppUser> users = new ArrayList<>(userRepository.findAllByOrderByDateJoinedDesc());
 
         if (search != null && !search.isBlank()) {
@@ -123,13 +124,12 @@ public class UserAccountService {
                 .map(this::toAdminCustomerResponse)
                 .collect(Collectors.toList());
 
-        int totalPages = (int) Math.ceil(total / (double) safePageSize);
-        return new CustomerListResponse(total, safePage, safePageSize, totalPages, results);
+        return new PaginatedResponse<>(results, safePage, safePageSize, total);
     }
 
     public AppUser requireUser(String username) {
         return findByUsernameOrEmail(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(username));
     }
 
     private Optional<AppUser> findByUsernameOrEmail(String value) {

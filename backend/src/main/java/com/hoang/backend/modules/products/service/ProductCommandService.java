@@ -4,6 +4,8 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoang.backend.common.InMemoryCacheService;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.common.storage.MinioService;
 import com.hoang.backend.modules.products.dto.ProductResponse;
 import com.hoang.backend.modules.products.entity.Category;
@@ -120,9 +122,9 @@ public class ProductCommandService {
     private void requireAdmin(String usernameOrEmail) {
         AppUser user = appUserRepository.findByUsernameIgnoreCase(usernameOrEmail)
                 .or(() -> appUserRepository.findByEmailIgnoreCase(usernameOrEmail))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(usernameOrEmail));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

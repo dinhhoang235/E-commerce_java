@@ -1,6 +1,6 @@
 package com.hoang.backend.modules.orders.controller;
 
-import com.hoang.backend.modules.orders.dto.AdminOrderListResponse;
+import com.hoang.backend.common.dto.PaginatedResponse;
 import com.hoang.backend.modules.orders.dto.OrderResponse;
 import com.hoang.backend.modules.orders.dto.OrderStatsResponse;
 import com.hoang.backend.modules.orders.dto.OrderStatusUpdateRequest;
@@ -27,13 +27,14 @@ public class AdminOrderController {
     private final OrderQueryService orderQueryService;
 
     @GetMapping(value = {"", "/"})
-    public ResponseEntity<AdminOrderListResponse> list(
+    public ResponseEntity<PaginatedResponse<OrderResponse>> list(
             Authentication authentication,
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "customer", required = false) String customer,
-            @RequestParam(name = "limit", required = false) Integer limit
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page_size", defaultValue = "20") int pageSize
     ) {
-        return ResponseEntity.ok(orderQueryService.listAdminOrders(authentication.getName(), status, customer, limit));
+        return ResponseEntity.ok(orderQueryService.listAdminOrders(authentication.getName(), status, customer, page, pageSize));
     }
 
     @GetMapping(value = {"/{orderId}", "/{orderId}/"})

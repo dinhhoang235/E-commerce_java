@@ -3,6 +3,7 @@ package com.hoang.backend.modules.products.repository;
 import com.hoang.backend.modules.products.entity.ProductVariant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -34,4 +35,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT v FROM ProductVariant v WHERE v.id = :id")
     Optional<ProductVariant> findByIdWithLock(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT v.product.id FROM ProductVariant v WHERE v.product.id IN :productIds AND v.active = true AND v.isInStock = true")
+    Set<Long> findProductIdsWithInStockVariant(@Param("productIds") List<Long> productIds);
 }

@@ -2,6 +2,8 @@ package com.hoang.backend.modules.payments.service;
 
 import com.hoang.backend.common.constants.OrderStatus;
 import com.hoang.backend.common.constants.PaymentStatus;
+import com.hoang.backend.common.exceptions.OrderNotFoundException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.orders.entity.Order;
 import com.hoang.backend.modules.orders.repository.OrderRepository;
 import com.hoang.backend.modules.payments.entity.PaymentTransaction;
@@ -148,13 +150,13 @@ public class PaymentQueryService {
 
     private Order requireOrder(String orderId, Long userId) {
         return orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
 
     private AppUser requireUser(String authenticatedUsername) {
         return appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
                 .or(() -> appUserRepository.findByEmailIgnoreCase(authenticatedUsername))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
     }
 
     private String formatTime(LocalDateTime time) { return time == null ? null : ISO_FORMATTER.format(time); }

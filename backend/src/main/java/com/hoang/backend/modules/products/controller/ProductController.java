@@ -1,6 +1,7 @@
 package com.hoang.backend.modules.products.controller;
 
 import com.hoang.backend.common.RequestPayloadReader;
+import com.hoang.backend.common.dto.PaginatedResponse;
 import com.hoang.backend.modules.products.dto.ProductFiltersResponse;
 import com.hoang.backend.modules.products.dto.ProductImageResponse;
 import com.hoang.backend.modules.products.dto.ProductResponse;
@@ -39,7 +40,12 @@ public class ProductController {
     private final RequestPayloadReader payloadReader;
 
     @GetMapping(value = {"", "/"})
-    public ResponseEntity<List<ProductResponse>> list(@RequestParam Map<String, String> queryParams) {
+    public ResponseEntity<PaginatedResponse<ProductResponse>> list(
+            @RequestParam Map<String, String> queryParams,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(name = "page_size", defaultValue = "20") int pageSize) {
+        queryParams.put("page", String.valueOf(page));
+        queryParams.put("page_size", String.valueOf(pageSize));
         return ResponseEntity.ok(productService.listProducts(queryParams));
     }
 

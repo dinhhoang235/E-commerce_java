@@ -5,10 +5,13 @@ package com.hoang.backend.modules.users.repository;
  */
 
 import com.hoang.backend.modules.users.entity.Account;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
 
     Optional<Account> findByUserId(Long userId);
+
+    List<Account> findByUserIdIn(List<Long> userIds);
 }

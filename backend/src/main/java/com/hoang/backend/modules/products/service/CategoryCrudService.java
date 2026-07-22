@@ -4,6 +4,8 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.hoang.backend.common.InMemoryCacheService;
 import com.hoang.backend.common.crud.BaseCrudService;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.common.storage.MinioService;
 import com.hoang.backend.modules.products.dto.CategoryResponse;
 import com.hoang.backend.modules.products.entity.Category;
@@ -65,9 +67,9 @@ public class CategoryCrudService extends BaseCrudService<Category, CategoryRespo
     protected void checkPermissions(String authenticatedUsername) {
         AppUser user = appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
                 .or(() -> appUserRepository.findByEmailIgnoreCase(authenticatedUsername))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

@@ -1,5 +1,6 @@
 package com.hoang.backend.modules.wishlist.service;
 
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.products.entity.Product;
 import com.hoang.backend.modules.products.entity.ProductVariant;
 import com.hoang.backend.modules.products.repository.ProductRepository;
@@ -22,7 +23,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,7 +72,7 @@ public class WishlistService {
 
         return new WishlistActionResponse(
                 "Item added to wishlist successfully",
-                toItemResponse(saved),
+                toItemResponse(saved, Map.of()),
                 null
         );
     }
@@ -131,7 +134,7 @@ public class WishlistService {
                     WishlistItem saved = wishlistItemRepository.save(item);
                     touchWishlist(wishlist);
 
-                    return new WishlistActionResponse("Item added to wishlist", toItemResponse(saved), "added");
+                    return new WishlistActionResponse("Item added to wishlist", toItemResponse(saved, Map.of()), "added");
                 });
     }
 
@@ -160,7 +163,7 @@ public class WishlistService {
 
     private AppUser requireUser(String authenticatedUsername) {
         return appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
     }
 
     private Long requireProductId(AddToWishlistRequest request) {
@@ -175,30 +178,39 @@ public class WishlistService {
     }
 
     private WishlistResponse toWishlistResponse(Wishlist wishlist) {
-        List<WishlistItemResponse> items = wishlistItemRepository.findByWishlistIdOrderByAddedAtDesc(wishlist.getId())
-                .stream()
-                .map(this::toItemResponse)
+        List<WishlistItem> items = wishlistItemRepository.findByWishlistIdOrderByAddedAtDesc(wishlist.getId());
+        Map<Long, List<ProductVariant>> variantsByProductId = buildVariantsMap(items);
+
+        List<WishlistItemResponse> itemResponses = items.stream()
+                .map(item -> toItemResponse(item, variantsByProductId))
                 .toList();
 
         return new WishlistResponse(
                 wishlist.getId(),
-                items,
-                items.size(),
+                itemResponses,
+                itemResponses.size(),
                 formatTime(wishlist.getCreatedAt()),
                 formatTime(wishlist.getUpdatedAt())
         );
     }
 
-    private WishlistItemResponse toItemResponse(WishlistItem item) {
+    private Map<Long, List<ProductVariant>> buildVariantsMap(List<WishlistItem> items) {
+        List<Long> productIds = items.stream().map(item -> item.getProduct().getId()).distinct().toList();
+        if (productIds.isEmpty()) return Map.of();
+        return productVariantRepository.findByProductIdIn(productIds).stream()
+                .collect(Collectors.groupingBy(v -> v.getProduct().getId()));
+    }
+
+    private WishlistItemResponse toItemResponse(WishlistItem item, Map<Long, List<ProductVariant>> variantsByProductId) {
         return new WishlistItemResponse(
                 item.getId(),
-                toProductResponse(item.getProduct()),
+                toProductResponse(item.getProduct(), variantsByProductId),
                 formatTime(item.getAddedAt())
         );
     }
 
-    private WishlistProductResponse toProductResponse(Product product) {
-        List<ProductVariant> variants = productVariantRepository.findByProductId(product.getId());
+    private WishlistProductResponse toProductResponse(Product product, Map<Long, List<ProductVariant>> variantsByProductId) {
+        List<ProductVariant> variants = variantsByProductId.getOrDefault(product.getId(), List.of());
 
         BigDecimal minPrice = variants.stream()
                 .map(ProductVariant::getPrice)

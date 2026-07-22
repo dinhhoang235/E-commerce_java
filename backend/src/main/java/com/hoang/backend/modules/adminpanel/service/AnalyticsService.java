@@ -1,5 +1,7 @@
 package com.hoang.backend.modules.adminpanel.service;
 
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.orders.repository.OrderRepository;
 import com.hoang.backend.modules.products.repository.ProductRepository;
 import com.hoang.backend.modules.users.entity.AppUser;
@@ -218,13 +220,13 @@ public class AnalyticsService {
 
     private void requireAdmin(String usernameOrEmail) {
         if (usernameOrEmail == null || usernameOrEmail.trim().isBlank()) {
-            throw new IllegalArgumentException("User not found.");
+            throw new UserNotFoundException("null");
         }
         AppUser user = userRepository.findByUsernameIgnoreCase(usernameOrEmail)
                 .or(() -> userRepository.findByEmailIgnoreCase(usernameOrEmail))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(usernameOrEmail));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

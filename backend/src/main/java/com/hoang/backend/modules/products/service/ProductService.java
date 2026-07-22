@@ -4,6 +4,7 @@ import static com.hoang.backend.modules.products.service.ProductUtils.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hoang.backend.common.InMemoryCacheService;
+import com.hoang.backend.common.dto.PaginatedResponse;
 import com.hoang.backend.modules.products.dto.ProductFiltersResponse;
 import com.hoang.backend.modules.products.dto.ProductResponse;
 import com.hoang.backend.modules.products.entity.Category;
@@ -49,9 +50,12 @@ public class ProductService {
     private final InMemoryCacheService cacheService;
     private final ObjectMapper objectMapper;
 
-    public List<ProductResponse> listProducts(Map<String, String> queryParams) {
+    public PaginatedResponse<ProductResponse> listProducts(Map<String, String> queryParams) {
         String cacheKey = generateCacheKey("products:list", queryParams);
-        return getOrCache(cacheService, cacheKey, PRODUCT_LIST_CACHE_TTL, () -> listProductsUncached(queryParams));
+        List<ProductResponse> results = getOrCache(cacheService, cacheKey, PRODUCT_LIST_CACHE_TTL, () -> listProductsUncached(queryParams));
+        int page = parseInt(queryParams.get("page")) != null ? parseInt(queryParams.get("page")) : 1;
+        int pageSize = parseInt(queryParams.get("page_size")) != null ? parseInt(queryParams.get("page_size")) : 20;
+        return new PaginatedResponse<>(results, page, pageSize, results.size());
     }
 
     private List<ProductResponse> listProductsUncached(Map<String, String> queryParams) {
@@ -65,6 +69,8 @@ public class ProductService {
         String storage = normalizeStorage(trimToNull(queryParams.get("storage")));
         Boolean inStock = parseBooleanNullable(queryParams.get("in_stock"));
         Integer limit = parseInt(queryParams.get("limit"));
+        int page = parseInt(queryParams.get("page")) != null ? parseInt(queryParams.get("page")) : 1;
+        int pageSize = parseInt(queryParams.get("page_size")) != null ? parseInt(queryParams.get("page_size")) : 20;
 
         Map<Long, List<ProductVariant>> variantsMap = ProductMapper.variantsByProduct(products, productVariantRepository);
 
@@ -132,6 +138,13 @@ public class ProductService {
             products = products.subList(0, limit);
         }
 
+        int totalBeforePaginate = products.size();
+        int start = Math.min((page - 1) * pageSize, totalBeforePaginate);
+        int end = Math.min(start + pageSize, totalBeforePaginate);
+        if (start > 0 || end < totalBeforePaginate) {
+            products = products.subList(start, end);
+        }
+
         Map<Long, List<ProductVariant>> filteredVariantsMap = ProductMapper.variantsByProduct(products, productVariantRepository);
         return products.stream().map(product -> ProductMapper.toProductResponse(product, filteredVariantsMap, productRepository, objectMapper)).toList();
     }
@@ -165,12 +178,19 @@ public class ProductService {
 
             List<Product> products = productRepository.findDistinctByActiveTrueAndCategoryIdIn(categoryIds.stream().toList()).stream()
                 .filter(candidate -> !Objects.equals(candidate.getId(), productId))
-                .filter(candidate -> ProductMapper.hasInStockVariant(candidate.getId(), productVariantRepository))
                 .sorted(Comparator
                     .comparing(Product::getRating, Comparator.nullsLast(Comparator.reverseOrder()))
                     .thenComparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(8)
                 .toList();
+
+            if (!products.isEmpty()) {
+                Set<Long> productIdsWithStock = productVariantRepository.findProductIdsWithInStockVariant(
+                        products.stream().map(Product::getId).toList());
+                products = products.stream()
+                        .filter(p -> productIdsWithStock.contains(p.getId()))
+                        .toList();
+            }
 
             Map<Long, List<ProductVariant>> variantsMap = ProductMapper.variantsByProduct(products, productVariantRepository);
             return products.stream().map(item -> ProductMapper.toProductResponse(item, variantsMap, productRepository, objectMapper)).toList();
@@ -211,8 +231,11 @@ public class ProductService {
 
     public List<ProductResponse> getNewArrivals() {
         return getOrCache(cacheService, "products:new_arrivals", PRODUCT_NEW_ARRIVALS_CACHE_TTL, () -> {
-            List<Product> products = productRepository.findAllByActiveTrueOrderByCreatedAtDesc().stream()
-                    .filter(product -> ProductMapper.hasInStockVariant(product.getId(), productVariantRepository))
+            List<Product> allProducts = productRepository.findAllByActiveTrueOrderByCreatedAtDesc();
+            Set<Long> productIdsWithStock = productVariantRepository.findProductIdsWithInStockVariant(
+                    allProducts.stream().map(Product::getId).toList());
+            List<Product> products = allProducts.stream()
+                    .filter(product -> productIdsWithStock.contains(product.getId()))
                     .limit(10)
                     .toList();
 
@@ -237,8 +260,10 @@ public class ProductService {
                     .toList();
         }
 
+        Set<Long> productIdsWithStock = productVariantRepository.findProductIdsWithInStockVariant(
+                products.stream().map(Product::getId).toList());
         products = products.stream()
-                .filter(product -> ProductMapper.hasInStockVariant(product.getId(), productVariantRepository))
+                .filter(product -> productIdsWithStock.contains(product.getId()))
                 .sorted(Comparator
                         .comparing(Product::getRating, Comparator.nullsLast(Comparator.reverseOrder()))
                         .thenComparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -269,7 +294,9 @@ public class ProductService {
             Set<Long> categoryIds = new LinkedHashSet<>();
             categoryIds.add(target.getId());
             categoryRepository.findByParentId(target.getId()).forEach(child -> categoryIds.add(child.getId()));
-            products = products.stream().filter(product -> categoryIds.contains(product.getCategory().getId())).toList();
+            products = products.stream()
+                    .filter(product -> product.getCategory() != null && categoryIds.contains(product.getCategory().getId()))
+                    .toList();
         }
 
         Map<Long, List<ProductVariant>> variantsMap = ProductMapper.variantsByProduct(products, productVariantRepository);

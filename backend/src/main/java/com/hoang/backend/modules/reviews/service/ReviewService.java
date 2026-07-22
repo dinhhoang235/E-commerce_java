@@ -1,5 +1,7 @@
 package com.hoang.backend.modules.reviews.service;
 
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.products.entity.Product;
 import com.hoang.backend.modules.products.repository.ProductRepository;
 import com.hoang.backend.modules.reviews.dto.ReviewCreateRequest;
@@ -85,7 +87,7 @@ public class ReviewService {
                 .orElseThrow(() -> new IllegalArgumentException("Review not found."));
 
         if (!review.getUser().getId().equals(user.getId())) {
-            throw new IllegalArgumentException("You can only update your own reviews.");
+            throw new UnauthorizedException();
         }
 
         if (request.rating() != null) {
@@ -112,7 +114,7 @@ public class ReviewService {
         boolean owner = review.getUser().getId().equals(user.getId());
         boolean admin = Boolean.TRUE.equals(user.getIsStaff());
         if (!owner && !admin) {
-            throw new IllegalArgumentException("You can only delete your own reviews.");
+            throw new UnauthorizedException();
         }
 
         Product product = review.getProduct();
@@ -122,7 +124,7 @@ public class ReviewService {
 
     private AppUser requireUser(String authenticatedUsername) {
         return appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
     }
 
     private void validateRating(Integer rating) {

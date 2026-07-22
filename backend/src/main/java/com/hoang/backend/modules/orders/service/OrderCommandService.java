@@ -1,5 +1,10 @@
 package com.hoang.backend.modules.orders.service;
 
+import com.hoang.backend.common.exceptions.InsufficientStockException;
+import com.hoang.backend.common.exceptions.InvalidOrderStatusException;
+import com.hoang.backend.common.exceptions.OrderNotFoundException;
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.cart.repository.CartItemRepository;
 import com.hoang.backend.modules.cart.repository.CartRepository;
 import static com.hoang.backend.common.util.TextUtils.*;
@@ -90,14 +95,14 @@ public class OrderCommandService {
     public OrderResponse updateOrderStatusAsUser(String authenticatedUsername, String orderId, String newStatus) {
         AppUser user = requireUser(authenticatedUsername);
         Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
 
         String normalizedStatus = normalizeStatus(newStatus);
         if (!OrderStatus.CANCELLED.equals(normalizedStatus)) {
             throw new IllegalArgumentException("You can only cancel an order.");
         }
         if (!USER_CANCELABLE_STATUSES.contains(order.getStatus())) {
-            throw new IllegalArgumentException("You can only cancel pending or processing orders.");
+            throw new InvalidOrderStatusException("You can only cancel pending or processing orders.");
         }
 
         applyStatusTransition(order, normalizedStatus);
@@ -107,10 +112,10 @@ public class OrderCommandService {
     public OrderResponse cancelOrder(String authenticatedUsername, String orderId) {
         AppUser user = requireUser(authenticatedUsername);
         Order order = orderRepository.findByIdAndUserId(orderId, user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
 
         if (!USER_CANCELABLE_STATUSES.contains(order.getStatus())) {
-            throw new IllegalArgumentException("Cannot cancel order with status: " + order.getStatus());
+            throw new InvalidOrderStatusException("Cannot cancel order with status: " + order.getStatus());
         }
 
         applyStatusTransition(order, OrderStatus.CANCELLED);
@@ -120,7 +125,7 @@ public class OrderCommandService {
     public OrderResponse adminUpdateOrderStatus(String authenticatedUsername, String orderId, String newStatus) {
         requireAdmin(authenticatedUsername);
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found."));
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
 
         applyStatusTransition(order, normalizeStatus(newStatus));
         return orderQueryService.toOrderResponse(order);
@@ -274,7 +279,7 @@ public class OrderCommandService {
         }
 
         if (OrderStatus.CANCELLED.equals(targetStatus) && !USER_CANCELABLE_STATUSES.contains(previousStatus) && !OrderStatus.SHIPPED.equals(previousStatus)) {
-            throw new IllegalArgumentException("Cannot cancel order with status: " + previousStatus);
+            throw new InvalidOrderStatusException("Cannot cancel order with status: " + previousStatus);
         }
 
         List<OrderItem> items = orderItemRepository.findByOrderIdOrderByIdAsc(order.getId());
@@ -319,21 +324,19 @@ public class OrderCommandService {
     private void ensureStock(ProductVariant variant, int quantity) {
         int available = variant.getStock() == null ? 0 : variant.getStock();
         if (quantity > available) {
-            throw new IllegalArgumentException(
-                    "Insufficient stock for variant " + variant.getId() + ". Available: " + available + ", Requested: " + quantity
-            );
+            throw new InsufficientStockException(variant.getId(), available, quantity);
         }
     }
 
     private AppUser requireUser(String authenticatedUsername) {
         return appUserRepository.findByUsernameIgnoreCase(authenticatedUsername)
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(authenticatedUsername));
     }
 
     private AppUser requireAdmin(String authenticatedUsername) {
         AppUser user = requireUser(authenticatedUsername);
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("You do not have permission to access this resource.");
+            throw new UnauthorizedException();
         }
         return user;
     }
@@ -341,7 +344,7 @@ public class OrderCommandService {
     private String normalizeStatus(String status) {
         String normalized = safeTrim(status).toLowerCase(Locale.ROOT);
         if (!VALID_STATUSES.contains(normalized)) {
-            throw new IllegalArgumentException("Invalid status. Valid choices: " + VALID_STATUSES);
+            throw new InvalidOrderStatusException("Invalid status. Valid choices: " + VALID_STATUSES);
         }
         return normalized;
     }

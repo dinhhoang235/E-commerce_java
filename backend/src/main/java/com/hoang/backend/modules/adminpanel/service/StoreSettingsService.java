@@ -2,6 +2,8 @@ package com.hoang.backend.modules.adminpanel.service;
 
 import static com.hoang.backend.common.util.TextUtils.*;
 
+import com.hoang.backend.common.exceptions.UnauthorizedException;
+import com.hoang.backend.common.exceptions.UserNotFoundException;
 import com.hoang.backend.modules.adminpanel.entity.StoreSettings;
 import com.hoang.backend.modules.adminpanel.repository.StoreSettingsRepository;
 import com.hoang.backend.modules.users.entity.AppUser;
@@ -64,13 +66,13 @@ public class StoreSettingsService {
 
     private void requireAdmin(String usernameOrEmail) {
         if (blank(usernameOrEmail)) {
-            throw new IllegalArgumentException("User not found.");
+            throw new UserNotFoundException("null");
         }
         AppUser user = userRepository.findByUsernameIgnoreCase(usernameOrEmail)
                 .or(() -> userRepository.findByEmailIgnoreCase(usernameOrEmail))
-                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException(usernameOrEmail));
         if (!Boolean.TRUE.equals(user.getIsStaff())) {
-            throw new IllegalArgumentException("Invalid credentials or insufficient permissions");
+            throw new UnauthorizedException();
         }
     }
 

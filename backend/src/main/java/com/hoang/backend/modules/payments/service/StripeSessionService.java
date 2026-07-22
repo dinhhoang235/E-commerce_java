@@ -2,6 +2,7 @@ package com.hoang.backend.modules.payments.service;
 
 import static com.hoang.backend.common.util.TextUtils.*;
 
+import com.hoang.backend.common.exceptions.PaymentException;
 import com.hoang.backend.common.shipping.ShippingCostCalculator;
 import com.hoang.backend.modules.orders.entity.Order;
 import com.hoang.backend.modules.orders.entity.OrderItem;
@@ -82,7 +83,7 @@ public class StripeSessionService {
         }
 
         try { return Session.create(builder.build()); }
-        catch (StripeException exception) { throw new IllegalArgumentException("Payment processing error: " + exception.getMessage()); }
+        catch (StripeException exception) { throw new PaymentException("Payment processing error: " + exception.getMessage()); }
     }
 
     public Refund createRefund(String paymentIntent, BigDecimal amount, String orderId, Long userId, String reason) {
@@ -94,13 +95,13 @@ public class StripeSessionService {
                 .putMetadata("order_id", orderId).putMetadata("user_id", String.valueOf(userId))
                 .putMetadata("reason", reason).putMetadata("refund_type", "full_refund").build();
         try { return Refund.create(params); }
-        catch (StripeException exception) { throw new IllegalArgumentException("Refund processing failed: " + exception.getMessage()); }
+        catch (StripeException exception) { throw new PaymentException("Refund processing failed: " + exception.getMessage()); }
     }
 
     public Session retrieveSession(String sessionId) {
         configureStripe();
         try { return Session.retrieve(sessionId); }
-        catch (StripeException exception) { throw new IllegalArgumentException("Invalid payment session"); }
+        catch (StripeException exception) { throw new PaymentException("Invalid payment session"); }
     }
 
     public boolean isSessionOpen(String sessionId) {
@@ -110,7 +111,7 @@ public class StripeSessionService {
     }
 
     private void configureStripe() {
-        if (blank(stripeSecretKey)) throw new IllegalArgumentException("Stripe secret key is not configured");
+        if (blank(stripeSecretKey)) throw new PaymentException("Stripe secret key is not configured");
         Stripe.apiKey = stripeSecretKey;
     }
 
